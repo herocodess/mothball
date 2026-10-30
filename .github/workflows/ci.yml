@@ -40,5 +40,9 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter analyze
+      - name: flutter analyze
+        run: |
+          flutter analyze --format=machine > analyze.txt 2>&1 || status=$?
+          awk -F'|' 'NF>=8 {printf "::%s file=app/%s,line=%s,col=%s::%s %s\n", ($1=="ERROR"?"error":"warning"), substr($4, index($4,"/lib/")?index($4,"lib/"):index($4,"test/")), $5, $6, $3, $8}' analyze.txt
+          exit ${status:-0}
       - run: flutter test
