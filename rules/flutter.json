@@ -1,0 +1,12 @@
+{
+  "id": "flutter",
+  "name": "Flutter and Dart",
+  "detect": ["pubspec.yaml"],
+  "outputs": [
+    { "path": ".dart_tool", "requireAny": ["package_config.json", "package_config_subset", "flutter_build"] },
+    { "path": "build", "requireAny": [".last_build_id", "flutter_assets", "app", "ios", "macos", "windows", "linux", "web", "native_assets", "test_cache", "unit_test_assets"] }
+  ],
+  "wake": [
+    { "run": "flutter pub get" }
+  ]
+}

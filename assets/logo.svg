@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Mothball">
+  <path d="M20,64 Q20,54 30,54 L58,54 L67,66 L94,66 L94,152 L30,152 Q20,152 20,142 Z" fill="#12161C" transform="rotate(-8 94 104)"/>
+  <path d="M180,64 Q180,54 170,54 L142,54 L133,66 L106,66 L106,152 L170,152 Q180,152 180,142 Z" fill="#12161C" transform="rotate(8 106 104)"/>
+  <rect x="95" y="50" width="10" height="112" rx="5" fill="#2BB673"/>
+  <path d="M98,50 L86,30 M102,50 L114,30" stroke="#12161C" stroke-width="6" stroke-linecap="round" fill="none"/>
+</svg>

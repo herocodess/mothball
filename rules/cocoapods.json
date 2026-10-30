@@ -1,0 +1,11 @@
+{
+  "id": "cocoapods",
+  "name": "iOS and macOS (CocoaPods)",
+  "detect": ["Podfile"],
+  "outputs": [
+    { "path": "Pods", "requireAny": ["Manifest.lock"] }
+  ],
+  "wake": [
+    { "run": "pod install" }
+  ]
+}

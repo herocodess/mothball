@@ -1,0 +1,19 @@
+# Go
+/dist/
+/bin/
+*.test
+coverage.out
+
+# Flutter app
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/**/Pods/
+app/**/ephemeral/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

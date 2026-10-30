@@ -1,0 +1,19 @@
+{
+  "id": "javascript",
+  "name": "JavaScript and TypeScript",
+  "detect": ["package.json"],
+  "outputs": [
+    { "path": "node_modules", "requireAny": [".package-lock.json", ".modules.yaml", ".yarn-integrity", ".yarn-state.yml", ".bin", ".pnpm"] },
+    { "path": ".next", "requireAny": ["BUILD_ID", "build-manifest.json", "cache", "trace"] },
+    { "path": ".nuxt", "requireAny": ["nuxt.d.ts", "tsconfig.json", "types"], "requireSibling": ["nuxt.config.ts", "nuxt.config.js"] },
+    { "path": ".svelte-kit", "requireAny": ["ambient.d.ts", "generated", "output"] },
+    { "path": ".turbo", "requireAny": ["cache", "cookies", "daemon"] }
+  ],
+  "wake": [
+    { "when": "pnpm-lock.yaml", "run": "pnpm install" },
+    { "when": "yarn.lock", "run": "yarn install" },
+    { "when": "bun.lockb", "run": "bun install" },
+    { "when": "bun.lock", "run": "bun install" },
+    { "run": "npm install" }
+  ]
+}
