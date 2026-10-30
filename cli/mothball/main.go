@@ -38,6 +38,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return cmdWake(args[1:], stdin, stdout, stderr)
 	case "empty":
 		return cmdEmpty(args[1:], stdin, stdout, stderr)
+	case "status":
+		return cmdStatus(args[1:], stdout, stderr)
+	case "service":
+		return cmdService(args[1:], stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, "mothball", version)
 		return 0
@@ -59,6 +63,9 @@ Usage:
   mothball clean [folders...]   move that output to the Trash, after asking
   mothball wake [project]       list mothballed projects, or restore one
   mothball empty                permanently empty what Mothball put in the Trash
+  mothball status               free space, autopilot and what is reclaimable
+  mothball service install      run in the background and start at login
+  mothball service uninstall    stop running in the background
   mothball version
 
 Options:

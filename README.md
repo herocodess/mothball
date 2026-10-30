@@ -44,7 +44,7 @@ Each stack is a small rule pack, so adding a new one is a single pull request. 2
 | .NET and functional | C#, F#, VB, Elixir, Erlang, Haskell |
 | Games | Unity, Unreal Engine, Godot |
 | Infra | Terraform |
-| Global caches | Xcode, simulators, npm, pnpm, yarn, bun, pip, uv, Gradle, CocoaPods, Homebrew, Go, Electron app caches |
+| Global caches (planned) | Xcode, simulators, npm, pnpm, yarn, bun, pip, uv, Gradle, CocoaPods, Homebrew, Go, Electron app caches |
 
 Docker, Android emulators and local AI models are reported, never removed without asking.
 
@@ -73,7 +73,7 @@ Only `core` ever touches files. The CLI, the background service and the desktop 
 
 ## CLI
 
-Available now: `scan`, `clean`, `wake` and `empty`.
+Available now: everything below.
 
 ```sh
 mothball scan                # what is reclaimable, by project
@@ -82,6 +82,8 @@ mothball clean               # do it
 mothball wake                # list mothballed projects
 mothball wake ~/dev/my-app   # restore one, with its stack's install command
 mothball empty               # permanently empty only what Mothball put in the Trash
+mothball status              # free space, autopilot, reclaimable space
+mothball service install     # run in the background and start at login
 ```
 
 Keep a project out of it forever by adding a `.mothballignore` file to its root.
