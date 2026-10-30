@@ -65,7 +65,7 @@ go install github.com/herocodess/mothball/cli/mothball@latest
 | `core/` | The Go engine: scanning, rule matching, verification, Trash, wake, autopilot |
 | `cli/` | The `mothball` command, a thin layer over `core` |
 | `rules/` | Rule packs, one YAML file per stack |
-| `app/` | The Flutter desktop app for macOS, Windows and Linux |
+| `app/` | The Flutter desktop app for macOS, Windows and Linux (see [app/README.md](app/README.md)) |
 | `assets/` | Logo, icons and the menu bar glyph |
 | `docs/` | Rule pack format and design notes |
 

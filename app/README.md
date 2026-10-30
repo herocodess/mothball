@@ -1,11 +1,27 @@
 # Mothball desktop app
 
-The Flutter desktop app for macOS, Windows and Linux lives here. It is a window only: it never touches files. It talks to the Mothball background service over a local JSON API, the same one the CLI uses.
+The Flutter app for macOS, Windows and Linux. It is a window only: it never touches files. Everything goes through the Mothball background service's local API, the same engine the CLI uses, so autopilot keeps running when the window is closed.
 
-The menu bar and tray icon belong to the background service, not this app, so Mothball stays light when the window is closed.
+What it shows:
 
-Not started yet. It is milestone 4 in the v1 plan. Create it with:
+- Free space, the autopilot switch and your target
+- Build output in idle projects, with "Put away" per folder or all at once
+- Mothballed projects, with "Wake" (highlighted when you're back on one)
+- Recent autopilot activity
+- Settings: idle threshold, free space target, auto-empty, folders to watch
+
+The app has no third-party packages; the logo is drawn in code.
+
+## Run it
+
+You need Flutter and the `mothball` CLI on your PATH.
 
 ```sh
-flutter create --platforms=macos,windows,linux --org dev.mothball app
+go install github.com/herocodess/mothball/cli/mothball@latest   # or build from the repo root
+mothball service install                                        # start the background service
+cd app
+sh setup.sh                                                     # once: creates the platform folders
+flutter run -d macos                                            # or windows, linux
 ```
+
+`setup.sh` turns off the macOS App Sandbox and allows local network access, because the app reads the service's private endpoint file in `~/Library/Application Support/mothball` and talks to it on 127.0.0.1.
