@@ -32,16 +32,16 @@ Every project you clone, build and forget keeps its `node_modules`, `build`, `.d
 
 ## What it covers
 
-Each stack is a small rule pack, so adding a new one is a single pull request. This is the v1 target; packs available today: JavaScript and TypeScript, Flutter, CocoaPods, Gradle and Python.
+Each stack is a small rule pack, so adding a new one is a single pull request. 23 packs ship today, and every one is tested automatically against a same-named source folder.
 
 | Area | Stacks |
 | --- | --- |
-| Web | JavaScript, TypeScript, Next.js, Nuxt, SvelteKit, Astro, Remix, Angular, Deno |
-| Mobile | Flutter, React Native, Expo, iOS (CocoaPods, SwiftPM), Android (Gradle) |
+| Web | JavaScript, TypeScript, Next.js, Nuxt, SvelteKit, Astro, Turbo, Parcel, Angular |
+| Mobile | Flutter, React Native, Expo, iOS and macOS (CocoaPods, Swift Package Manager), Android (Gradle) |
 | JVM | Java, Kotlin, Scala (Gradle, Maven, sbt) |
-| Systems | Rust, Go, Zig, C and C++ (CMake), Bazel |
-| Scripting | Python (pip, uv, Poetry, venv), Ruby, PHP, Jupyter |
-| .NET and functional | C#, F#, Elixir, Haskell |
+| Systems | Rust, Zig, C and C++ (CMake) |
+| Scripting | Python (venv, pytest, mypy, ruff, tox, nox), Ruby, PHP |
+| .NET and functional | C#, F#, VB, Elixir, Erlang, Haskell |
 | Games | Unity, Unreal Engine, Godot |
 | Infra | Terraform |
 | Global caches | Xcode, simulators, npm, pnpm, yarn, bun, pip, uv, Gradle, CocoaPods, Homebrew, Go, Electron app caches |

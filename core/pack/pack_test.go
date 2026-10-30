@@ -28,7 +28,8 @@ func TestPacksMustBeSafe(t *testing.T) {
 		"absolute path":   `{"id":"a","name":"A","detect":["x"],"outputs":[{"path":"/tmp","requireAny":["m"]}],"wake":[{"run":"r"}]}`,
 		"project itself":  `{"id":"a","name":"A","detect":["x"],"outputs":[{"path":".","requireAny":["m"]}],"wake":[{"run":"r"}]}`,
 		"detect has path": `{"id":"a","name":"A","detect":["sub/x"],"outputs":[{"path":"b","requireAny":["m"]}],"wake":[{"run":"r"}]}`,
-		"no wake":         `{"id":"a","name":"A","detect":["x"],"outputs":[{"path":"b","requireAny":["m"]}]}`,
+		"empty wake":      `{"id":"a","name":"A","detect":["x"],"outputs":[{"path":"b","requireAny":["m"]}],"wake":[{"run":" "}]}`,
+		"bad pattern":     `{"id":"a","name":"A","detect":["[x"],"outputs":[{"path":"b","requireAny":["m"]}]}`,
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {

@@ -1,0 +1,9 @@
+{
+  "id": "ruby",
+  "name": "Ruby (Bundler)",
+  "detect": ["Gemfile"],
+  "outputs": [
+    { "path": "vendor/bundle", "requireAny": ["ruby"] }
+  ],
+  "wake": [{ "run": "bundle install" }]
+}

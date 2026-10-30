@@ -1,0 +1,9 @@
+{
+  "id": "rust",
+  "name": "Rust",
+  "detect": ["Cargo.toml"],
+  "outputs": [
+    { "path": "target", "requireAny": ["CACHEDIR.TAG", ".rustc_info.json"] }
+  ],
+  "wake": [{ "run": "cargo fetch" }]
+}

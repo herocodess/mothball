@@ -1,0 +1,13 @@
+{
+  "id": "haskell",
+  "name": "Haskell (Stack, Cabal)",
+  "detect": ["stack.yaml", "cabal.project", "*.cabal"],
+  "outputs": [
+    { "path": ".stack-work", "requireAny": ["install", "dist"] },
+    { "path": "dist-newstyle", "requireAny": ["cache", "packagedb"] }
+  ],
+  "wake": [
+    { "when": "stack.yaml", "run": "stack build --only-dependencies" },
+    { "run": "cabal build --only-dependencies" }
+  ]
+}

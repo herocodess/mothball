@@ -1,0 +1,11 @@
+{
+  "id": "zig",
+  "name": "Zig",
+  "detect": ["build.zig"],
+  "outputs": [
+    { "path": ".zig-cache", "requireAny": ["h", "o", "z", "tmp"] },
+    { "path": "zig-cache", "requireAny": ["h", "o", "z", "tmp"] },
+    { "path": "zig-out", "requireAny": ["bin"] }
+  ],
+  "wake": [{ "run": "zig build" }]
+}

@@ -1,20 +1,77 @@
 {
   "id": "python",
   "name": "Python",
-  "detect": ["pyproject.toml", "requirements.txt", "setup.py", "setup.cfg", "Pipfile"],
+  "detect": [
+    "pyproject.toml",
+    "requirements.txt",
+    "setup.py",
+    "setup.cfg",
+    "Pipfile"
+  ],
   "outputs": [
-    { "path": ".venv", "requireAny": ["pyvenv.cfg"] },
-    { "path": "venv", "requireAny": ["pyvenv.cfg"] },
-    { "path": ".pytest_cache", "requireAny": ["CACHEDIR.TAG"] },
-    { "path": ".mypy_cache", "requireAny": ["CACHEDIR.TAG"] },
-    { "path": ".ruff_cache", "requireAny": ["CACHEDIR.TAG"] },
-    { "path": ".tox", "requireAny": [".tox-info.json", "log"] }
+    {
+      "path": ".venv",
+      "requireAny": [
+        "pyvenv.cfg"
+      ]
+    },
+    {
+      "path": "venv",
+      "requireAny": [
+        "pyvenv.cfg"
+      ]
+    },
+    {
+      "path": ".pytest_cache",
+      "requireAny": [
+        "CACHEDIR.TAG"
+      ]
+    },
+    {
+      "path": ".mypy_cache",
+      "requireAny": [
+        "CACHEDIR.TAG"
+      ]
+    },
+    {
+      "path": ".ruff_cache",
+      "requireAny": [
+        "CACHEDIR.TAG"
+      ]
+    },
+    {
+      "path": ".tox",
+      "requireAny": [
+        ".tox-info.json",
+        "log"
+      ]
+    },
+    {
+      "path": ".nox",
+      "requireAny": [
+        "CACHEDIR.TAG"
+      ]
+    }
   ],
   "wake": [
-    { "when": "uv.lock", "run": "uv sync" },
-    { "when": "poetry.lock", "run": "poetry install" },
-    { "when": "Pipfile.lock", "run": "pipenv install" },
-    { "when": "requirements.txt", "run": "python -m venv .venv && .venv/bin/pip install -r requirements.txt" },
-    { "run": "python -m venv .venv && .venv/bin/pip install -e ." }
+    {
+      "when": "uv.lock",
+      "run": "uv sync"
+    },
+    {
+      "when": "poetry.lock",
+      "run": "poetry install"
+    },
+    {
+      "when": "Pipfile.lock",
+      "run": "pipenv install"
+    },
+    {
+      "when": "requirements.txt",
+      "run": "python -m venv .venv && .venv/bin/pip install -r requirements.txt"
+    },
+    {
+      "run": "python -m venv .venv && .venv/bin/pip install -e ."
+    }
   ]
 }

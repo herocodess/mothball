@@ -1,0 +1,9 @@
+{
+  "id": "php",
+  "name": "PHP (Composer)",
+  "detect": ["composer.json"],
+  "outputs": [
+    { "path": "vendor", "requireAny": ["autoload.php"], "requireSibling": ["composer.lock"] }
+  ],
+  "wake": [{ "run": "composer install" }]
+}

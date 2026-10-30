@@ -1,0 +1,10 @@
+{
+  "id": "dotnet",
+  "name": ".NET (C#, F#, VB)",
+  "detect": ["*.csproj", "*.fsproj", "*.vbproj"],
+  "outputs": [
+    { "path": "bin", "requireAny": ["Debug", "Release"] },
+    { "path": "obj", "requireAny": ["project.assets.json"] }
+  ],
+  "wake": [{ "run": "dotnet restore" }]
+}

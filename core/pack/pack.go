@@ -36,16 +36,36 @@ type Output struct {
 }
 
 // Wake is one way to restore a project. The first entry whose When file exists
-// in the project wins; an entry with no When is the fallback.
+// in the project wins; an entry with no When is the fallback. A pack with no
+// wake entries is rebuilt on its own the next time the tool runs.
 type Wake struct {
 	When string `json:"when,omitempty"`
 	Run  string `json:"run"`
 }
 
 // Set is every loaded pack plus an index from detect file name to packs.
+// Detect entries with a * (like *.csproj) are kept in Patterns instead.
 type Set struct {
 	Packs    []*Pack
 	ByDetect map[string][]*Pack
+	Patterns []Pattern
+}
+
+// Pattern is a wildcard detect entry.
+type Pattern struct {
+	Glob string
+	Pack *Pack
+}
+
+// Match returns the packs that claim a folder entry called name.
+func (s *Set) Match(name string) []*Pack {
+	out := append([]*Pack(nil), s.ByDetect[name]...) // copy: never append into the index
+	for _, p := range s.Patterns {
+		if ok, _ := path.Match(p.Glob, name); ok {
+			out = append(out, p.Pack)
+		}
+	}
+	return out
 }
 
 // Load reads every *.json pack in fsys.
@@ -76,7 +96,11 @@ func Load(fsys fs.FS) (*Set, error) {
 		pp := &p
 		set.Packs = append(set.Packs, pp)
 		for _, d := range p.Detect {
-			set.ByDetect[d] = append(set.ByDetect[d], pp)
+			if strings.Contains(d, "*") {
+				set.Patterns = append(set.Patterns, Pattern{Glob: d, Pack: pp})
+			} else {
+				set.ByDetect[d] = append(set.ByDetect[d], pp)
+			}
 		}
 	}
 	return set, nil
@@ -93,8 +117,11 @@ func (p *Pack) validate() error {
 		return fmt.Errorf("pack %q has no outputs", p.ID)
 	}
 	for _, d := range p.Detect {
-		if strings.ContainsAny(d, `/\`) {
-			return fmt.Errorf("pack %q: detect entry %q must be a plain file name", p.ID, d)
+		if d == "" || strings.ContainsAny(d, `/\?[`) {
+			return fmt.Errorf("pack %q: detect entry %q must be a plain file name, optionally with *", p.ID, d)
+		}
+		if _, err := path.Match(d, ""); err != nil {
+			return fmt.Errorf("pack %q: bad detect pattern %q", p.ID, d)
 		}
 	}
 	for _, o := range p.Outputs {
@@ -107,8 +134,10 @@ func (p *Pack) validate() error {
 			return fmt.Errorf("pack %q: output %q needs requireAny, so it can never match by name alone", p.ID, o.Path)
 		}
 	}
-	if len(p.Wake) == 0 {
-		return fmt.Errorf("pack %q has no wake command", p.ID)
+	for _, w := range p.Wake {
+		if strings.TrimSpace(w.Run) == "" {
+			return fmt.Errorf("pack %q has an empty wake command", p.ID)
+		}
 	}
 	return nil
 }

@@ -1,0 +1,10 @@
+{
+  "id": "sbt",
+  "name": "Scala (sbt)",
+  "detect": ["build.sbt"],
+  "outputs": [
+    { "path": "target", "requireAny": ["streams", "global-logging", "task-temp-directory"] },
+    { "path": "project/target", "requireAny": ["streams", "config-classes", "scala-2.12"] }
+  ],
+  "wake": [{ "run": "sbt update" }]
+}

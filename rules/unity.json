@@ -1,0 +1,8 @@
+{
+  "id": "unity",
+  "name": "Unity",
+  "detect": ["ProjectSettings"],
+  "outputs": [
+    { "path": "Library", "requireAny": ["ArtifactDB", "SourceAssetDB", "PackageCache", "ScriptAssemblies"], "requireSibling": ["Assets"] }
+  ]
+}

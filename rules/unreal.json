@@ -1,0 +1,9 @@
+{
+  "id": "unreal",
+  "name": "Unreal Engine",
+  "detect": ["*.uproject"],
+  "outputs": [
+    { "path": "Intermediate", "requireAny": ["ProjectFiles", "Build"] },
+    { "path": "DerivedDataCache", "requireAny": ["Compressed.ddp", "Bulk"] }
+  ]
+}

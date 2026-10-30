@@ -1,0 +1,12 @@
+{
+  "id": "maven",
+  "name": "Java (Maven)",
+  "detect": ["pom.xml"],
+  "outputs": [
+    { "path": "target", "requireAny": ["maven-status", "maven-archiver", "surefire-reports", "classes", "test-classes"] }
+  ],
+  "wake": [
+    { "when": "mvnw", "run": "./mvnw -q dependency:resolve" },
+    { "run": "mvn -q dependency:resolve" }
+  ]
+}

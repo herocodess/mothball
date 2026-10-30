@@ -1,0 +1,9 @@
+{
+  "id": "erlang",
+  "name": "Erlang (rebar3)",
+  "detect": ["rebar.config"],
+  "outputs": [
+    { "path": "_build", "requireAny": ["default", "test", "prod"] }
+  ],
+  "wake": [{ "run": "rebar3 get-deps" }]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "godot",
+  "name": "Godot",
+  "detect": ["project.godot"],
+  "outputs": [
+    { "path": ".godot", "requireAny": ["imported", "editor", "uid_cache.bin", "global_script_class_cache.cfg"] }
+  ]
+}

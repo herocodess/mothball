@@ -4,7 +4,6 @@
 package wake
 
 import (
-	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -138,9 +137,8 @@ func returnedSince(project string, t time.Time) bool {
 // Run executes the project's restore commands in its folder, in order, and
 // records the wake. It stops at the first command that fails.
 func Run(p Project, log interface{ Append(history.Entry) error }, stdout, stderr io.Writer) error {
-	if len(p.Commands) == 0 {
-		return errors.New("no restore command known for this project")
-	}
+	// No commands means the stack rebuilds its output on its own (game engines,
+	// framework caches): there is nothing to run, only the wake to record.
 	for _, c := range p.Commands {
 		cmd := shell(c)
 		cmd.Dir = p.Path

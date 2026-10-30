@@ -1,0 +1,12 @@
+{
+  "id": "cmake",
+  "name": "C and C++ (CMake)",
+  "detect": ["CMakeLists.txt"],
+  "outputs": [
+    { "path": "build", "requireAny": ["CMakeCache.txt"] },
+    { "path": "cmake-build-debug", "requireAny": ["CMakeCache.txt"] },
+    { "path": "cmake-build-release", "requireAny": ["CMakeCache.txt"] },
+    { "path": "out", "requireAny": ["CMakeCache.txt", "build"], "requireSibling": ["CMakePresets.json"] }
+  ],
+  "wake": [{ "run": "cmake -S . -B build" }]
+}

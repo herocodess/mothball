@@ -1,0 +1,8 @@
+{
+  "id": "angular",
+  "name": "Angular",
+  "detect": ["angular.json"],
+  "outputs": [
+    { "path": ".angular", "requireAny": ["cache"] }
+  ]
+}

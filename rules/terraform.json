@@ -1,0 +1,9 @@
+{
+  "id": "terraform",
+  "name": "Terraform",
+  "detect": ["*.tf"],
+  "outputs": [
+    { "path": ".terraform", "requireAny": ["providers", "modules"] }
+  ],
+  "wake": [{ "run": "terraform init" }]
+}

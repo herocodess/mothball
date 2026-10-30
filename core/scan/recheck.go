@@ -3,8 +3,11 @@ package scan
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/herocodess/mothball/core/pack"
 )
 
 // Recheck runs every safety check again on one candidate, with fresh git facts,
@@ -31,7 +34,7 @@ func (s *Scanner) Recheck(c Candidate, idleDays int, now time.Time) error {
 			continue
 		}
 		found = true
-		if !anyExists(c.Project, p.Detect) {
+		if !s.claims(c.Project, p) {
 			return errors.New("project file is gone")
 		}
 		s.git.forget(c.Project)
@@ -50,4 +53,20 @@ func (s *Scanner) Recheck(c Candidate, idleDays int, now time.Time) error {
 		return fmt.Errorf("project was active %d days ago", fresh.IdleDays)
 	}
 	return nil
+}
+
+// claims reports whether dir still contains one of the pack's detect files.
+func (s *Scanner) claims(dir string, p *pack.Pack) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		for _, q := range s.packs.Match(e.Name()) {
+			if q == p {
+				return true
+			}
+		}
+	}
+	return false
 }

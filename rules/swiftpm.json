@@ -1,0 +1,9 @@
+{
+  "id": "swiftpm",
+  "name": "Swift Package Manager",
+  "detect": ["Package.swift"],
+  "outputs": [
+    { "path": ".build", "requireAny": ["workspace-state.json", "checkouts", "repositories", "artifacts"] }
+  ],
+  "wake": [{ "run": "swift package resolve" }]
+}

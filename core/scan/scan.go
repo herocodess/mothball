@@ -102,7 +102,7 @@ func (s *Scanner) walk(dir string, now time.Time, res *Result, seen map[string]b
 	var matched []*pack.Pack
 	dedupe := map[string]bool{}
 	for name := range names {
-		for _, p := range s.packs.ByDetect[name] {
+		for _, p := range s.packs.Match(name) {
 			if !dedupe[p.ID] {
 				dedupe[p.ID] = true
 				matched = append(matched, p)

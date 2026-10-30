@@ -1,0 +1,10 @@
+{
+  "id": "elixir",
+  "name": "Elixir (Mix)",
+  "detect": ["mix.exs"],
+  "outputs": [
+    { "path": "_build", "requireAny": ["dev", "test", "prod"] },
+    { "path": "deps", "requireAny": [".mix", "hex"], "requireSibling": ["mix.lock"] }
+  ],
+  "wake": [{ "run": "mix deps.get" }]
+}

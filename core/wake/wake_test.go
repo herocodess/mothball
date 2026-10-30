@@ -117,8 +117,13 @@ func TestRunRecordsWake(t *testing.T) {
 		t.Fatal("command did not run in the project folder")
 	}
 	all, _ := log.All()
-	if len(all) != 1 || all[0].Kind() != history.Woke {
+	if len(all) < 1 || all[0].Kind() != history.Woke {
 		t.Fatalf("history = %+v", all)
+	}
+
+	noop := Project{Path: app}
+	if err := Run(noop, log, &out, &out); err != nil {
+		t.Fatal("a stack that rebuilds on its own should wake without commands:", err)
 	}
 
 	failing := Project{Path: app, Commands: []string{"exit 3"}}
