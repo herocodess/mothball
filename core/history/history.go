@@ -11,8 +11,16 @@ import (
 	"time"
 )
 
-// Entry is one folder put away.
+// Events recorded in the history.
+const (
+	Trashed = "trashed" // a folder was moved to the Trash
+	Purged  = "purged"  // Mothball emptied that folder from the Trash after its grace period
+	Woke    = "woke"    // the project was restored
+)
+
+// Entry is one event. Older entries have no Event and mean Trashed.
 type Entry struct {
+	Event    string    `json:"event,omitempty"`
 	Time     time.Time `json:"time"`
 	Original string    `json:"original"`
 	Trashed  string    `json:"trashed"`
@@ -28,8 +36,20 @@ type Log struct {
 	mu   sync.Mutex
 }
 
+// Kind returns the entry's event, treating an empty one as Trashed.
+func (e Entry) Kind() string {
+	if e.Event == "" {
+		return Trashed
+	}
+	return e.Event
+}
+
 // DefaultDir is where Mothball keeps its own state on this system.
+// MOTHBALL_STATE_DIR overrides it.
 func DefaultDir() (string, error) {
+	if d := os.Getenv("MOTHBALL_STATE_DIR"); d != "" {
+		return d, nil
+	}
 	base, err := os.UserConfigDir()
 	if err != nil {
 		return "", err

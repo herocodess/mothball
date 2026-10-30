@@ -13,3 +13,7 @@ func (noTrash) Trash(string) (string, error) {
 }
 
 func isEXDEV(error) bool { return false }
+
+func Owned(dest, original string) bool { return false }
+
+func Remove(dest, original string) error { return ErrNotOwned }

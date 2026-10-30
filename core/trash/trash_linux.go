@@ -75,3 +75,54 @@ func encodePath(p string) string {
 }
 
 func isEXDEV(err error) bool { return errors.Is(err, syscall.EXDEV) }
+
+func trashRoot() (string, error) {
+	root := os.Getenv("XDG_DATA_HOME")
+	if root == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		root = filepath.Join(home, ".local", "share")
+	}
+	return filepath.Join(root, "Trash"), nil
+}
+
+// Owned reports whether dest is directly inside the user's Trash files folder
+// and its restore record points back at original.
+func Owned(dest, original string) bool {
+	root, err := trashRoot()
+	if err != nil {
+		return false
+	}
+	clean := filepath.Clean(dest)
+	if filepath.Dir(clean) != filepath.Join(root, "files") {
+		return false
+	}
+	info, err := os.ReadFile(filepath.Join(root, "info", filepath.Base(clean)+".trashinfo"))
+	if err != nil {
+		return false
+	}
+	abs, err := filepath.Abs(original)
+	if err != nil {
+		return false
+	}
+	for _, line := range strings.Split(string(info), "\n") {
+		if strings.TrimSpace(line) == "Path="+encodePath(abs) {
+			return true
+		}
+	}
+	return false
+}
+
+// Remove permanently deletes a folder this package trashed, with its record.
+func Remove(dest, original string) error {
+	if !Owned(dest, original) {
+		return ErrNotOwned
+	}
+	root, _ := trashRoot()
+	if err := os.RemoveAll(dest); err != nil {
+		return err
+	}
+	return os.Remove(filepath.Join(root, "info", filepath.Base(filepath.Clean(dest))+".trashinfo"))
+}

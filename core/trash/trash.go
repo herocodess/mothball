@@ -15,6 +15,10 @@ import (
 // package knows about. Mothball skips it rather than copying gigabytes.
 var ErrOtherVolume = errors.New("folder is on another disk")
 
+// ErrNotOwned means a path is not something Mothball put in the Trash, so it
+// will not be deleted.
+var ErrNotOwned = errors.New("not a folder Mothball put in the Trash")
+
 // Trasher moves one folder to the Trash and says where it went.
 type Trasher interface {
 	Trash(path string) (dest string, err error)

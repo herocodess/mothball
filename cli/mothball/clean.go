@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -54,15 +53,7 @@ func cmdClean(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	dir := os.Getenv("MOTHBALL_STATE_DIR")
-	if dir == "" {
-		var err error
-		if dir, err = history.DefaultDir(); err != nil {
-			fmt.Fprintln(stderr, "mothball: cannot find a place for the history:", err)
-			return 1
-		}
-	}
-	log, err := history.Open(dir)
+	log, err := openHistory()
 	if err != nil {
 		fmt.Fprintln(stderr, "mothball: cannot open the history:", err)
 		return 1
@@ -107,6 +98,14 @@ func cmdClean(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+func openHistory() (*history.Log, error) {
+	dir, err := history.DefaultDir()
+	if err != nil {
+		return nil, err
+	}
+	return history.Open(dir)
 }
 
 func confirm(in io.Reader, out io.Writer, prompt string) bool {

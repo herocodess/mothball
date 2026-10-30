@@ -25,7 +25,8 @@ Every project you clone, build and forget keeps its `node_modules`, `build`, `.d
 - Never removes anything tracked by git
 - Never trusts a folder name alone
 - Never deletes inside package caches; those are cleaned with their own tool's command
-- Moves everything to the Trash with a manifest of original paths, so nothing is gone until you empty it
+- Moves everything to the Trash with a record of where it came from, so nothing is gone until it is emptied
+- Optional auto-empty after a grace period (7 days by default), only ever for folders Mothball itself put in the Trash, each checked against its record
 - Skips projects with uncommitted changes or recent activity
 - Runs entirely on your machine. No network, no telemetry
 
@@ -72,14 +73,15 @@ Only `core` ever touches files. The CLI, the background service and the desktop 
 
 ## CLI
 
-Available now: `scan` and `clean`. `wake` and `status` are planned for v1.
+Available now: `scan`, `clean`, `wake` and `empty`.
 
 ```sh
 mothball scan                # what is reclaimable, by project
 mothball clean --dry-run     # preview exactly what would move to the Trash
 mothball clean               # do it
-mothball wake ~/dev/my-app   # restore a mothballed project
-mothball status --json       # for scripts and status bars
+mothball wake                # list mothballed projects
+mothball wake ~/dev/my-app   # restore one, with its stack's install command
+mothball empty               # permanently empty only what Mothball put in the Trash
 ```
 
 Keep a project out of it forever by adding a `.mothballignore` file to its root.

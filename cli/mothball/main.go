@@ -34,6 +34,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return cmdScan(args[1:], stdout, stderr)
 	case "clean":
 		return cmdClean(args[1:], stdin, stdout, stderr)
+	case "wake":
+		return cmdWake(args[1:], stdin, stdout, stderr)
+	case "empty":
+		return cmdEmpty(args[1:], stdin, stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, "mothball", version)
 		return 0
@@ -53,6 +57,8 @@ func usage(w io.Writer) {
 Usage:
   mothball scan [folders...]    show build output in idle projects (reads only)
   mothball clean [folders...]   move that output to the Trash, after asking
+  mothball wake [project]       list mothballed projects, or restore one
+  mothball empty                permanently empty what Mothball put in the Trash
   mothball version
 
 Options:
@@ -60,7 +66,8 @@ Options:
   --all           scan: also list output in active projects
   --json          scan: print machine-readable results
   --dry-run       clean: show what would move, change nothing
-  --yes           clean: do not ask first
+  --yes           clean, wake, empty: do not ask first
+  --older-than N  empty: only folders put away N+ days ago (default 7)
 `)
 }
 

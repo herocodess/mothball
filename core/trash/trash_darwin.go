@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -34,3 +35,32 @@ func (darwinTrash) Trash(path string) (string, error) {
 }
 
 func isEXDEV(err error) bool { return errors.Is(err, syscall.EXDEV) }
+
+// Owned reports whether dest is the folder this package trashed from original:
+// directly inside a "Mothball <date>" batch folder in ~/.Trash, under the
+// name it was given.
+func Owned(dest, original string) bool {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+	batch := filepath.Dir(filepath.Clean(dest))
+	name := filepath.Base(filepath.Clean(dest))
+	want := label(original)
+	return filepath.Dir(batch) == filepath.Join(home, ".Trash") &&
+		strings.HasPrefix(filepath.Base(batch), "Mothball ") &&
+		(name == want || strings.HasPrefix(name, want+" "))
+}
+
+// Remove permanently deletes a folder this package trashed, and its batch
+// folder once empty. It refuses anything else.
+func Remove(dest, original string) error {
+	if !Owned(dest, original) {
+		return ErrNotOwned
+	}
+	if err := os.RemoveAll(dest); err != nil {
+		return err
+	}
+	_ = os.Remove(filepath.Dir(dest)) // only succeeds when the batch is empty
+	return nil
+}

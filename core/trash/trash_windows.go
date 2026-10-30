@@ -37,3 +37,10 @@ func (windowsTrash) Trash(path string) (string, error) {
 }
 
 func isEXDEV(error) bool { return false }
+
+// Owned is false on Windows: items in the Recycle Bin cannot yet be found
+// again safely, so Mothball never empties them itself.
+func Owned(dest, original string) bool { return false }
+
+// Remove always refuses on Windows. See Owned.
+func Remove(dest, original string) error { return ErrNotOwned }

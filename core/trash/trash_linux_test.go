@@ -45,3 +45,28 @@ func TestLinuxTrashWritesRestoreInfo(t *testing.T) {
 		t.Fatal("second trash overwrote the first")
 	}
 }
+
+func TestRemoveOnlyOwnFolders(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", filepath.Join(root, "data"))
+	src := filepath.Join(root, "app", "build")
+	if err := os.MkdirAll(src, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dest, err := Default().Trash(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if Remove(dest, filepath.Join(root, "other", "build")) == nil {
+		t.Fatal("removed with the wrong original path")
+	}
+	if Remove(filepath.Join(root, "app"), src) == nil {
+		t.Fatal("removed something outside the Trash")
+	}
+	if err := Remove(dest, src); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dest); !os.IsNotExist(err) {
+		t.Fatal("not removed")
+	}
+}

@@ -56,7 +56,7 @@ func Run(plan []scan.Candidate, idleDays int, chk Checker, tr trash.Trasher, rec
 		}
 		o := Outcome{Candidate: c, Dest: dest}
 		if err := rec.Append(history.Entry{
-			Time: now, Original: c.Path, Trashed: dest, Project: c.Project,
+			Event: history.Trashed, Time: now, Original: c.Path, Trashed: dest, Project: c.Project,
 			Pack: c.Pack, Bytes: c.Bytes, Wake: c.Wake,
 		}); err != nil {
 			o.Err = &HistoryError{Err: err}
