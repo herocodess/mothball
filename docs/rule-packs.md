@@ -40,6 +40,8 @@ A folder is only a candidate when all of these hold:
 
 A project with uncommitted changes is always reported as in use.
 
+`mothball clean` runs every check again on each folder immediately before moving it, with fresh git facts. Anything that changed since the scan means the folder is left alone. Every move is recorded in a history file so the project can be woken later.
+
 ## Adding a pack
 
 1. Add `rules/<id>.json`.

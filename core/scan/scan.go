@@ -21,6 +21,7 @@ type Candidate struct {
 	Path     string    `json:"path"`
 	Project  string    `json:"project"`
 	Pack     string    `json:"pack"`
+	Output   string    `json:"output"` // the pack's output path, relative to Project
 	Bytes    int64     `json:"bytes"`
 	LastWork time.Time `json:"lastWork"`
 	IdleDays int       `json:"idleDays"`
@@ -183,12 +184,22 @@ func (s *Scanner) candidate(project, full, rel string, p *pack.Pack, now time.Ti
 		Path:     full,
 		Project:  project,
 		Pack:     p.ID,
+		Output:   rel,
 		LastWork: last,
 		IdleDays: idle,
 		InGit:    g.inRepo,
 		Dirty:    g.dirty,
 		Wake:     wakeCommand(project, p),
 	}
+}
+
+func (s *Scanner) findPack(id string) *pack.Pack {
+	for _, p := range s.packs.Packs {
+		if p.ID == id {
+			return p
+		}
+	}
+	return nil
 }
 
 func anyExists(dir string, names []string) bool {

@@ -72,7 +72,7 @@ Only `core` ever touches files. The CLI, the background service and the desktop 
 
 ## CLI
 
-Available now: `scan`. The rest are planned for v1.
+Available now: `scan` and `clean`. `wake` and `status` are planned for v1.
 
 ```sh
 mothball scan                # what is reclaimable, by project

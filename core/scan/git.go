@@ -73,6 +73,13 @@ func (g *gitRunner) project(dir string) projectGit {
 	return info
 }
 
+// forget drops cached facts for dir, so the next question asks git again.
+func (g *gitRunner) forget(dir string) {
+	g.mu.Lock()
+	delete(g.cache, dir)
+	g.mu.Unlock()
+}
+
 // tracked reports whether git tracks anything at or under rel inside dir.
 // When git cannot answer, it says yes, so the folder is left alone.
 func (g *gitRunner) tracked(dir, rel string) bool {
