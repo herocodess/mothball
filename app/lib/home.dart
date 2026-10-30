@@ -43,10 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
         await _run('Scanning your projects', () => widget.api.scan());
         st = await widget.api.status();
       }
-      if (mounted) setState(() {
-      _status = st;
-      _offline = null;
-    });
+      if (mounted) {
+        setState(() {
+          _status = st;
+          _offline = null;
+        });
+      }
     } on ServiceUnavailable catch (e) {
       if (mounted) setState(() => _offline = e.reason);
     } catch (e) {
