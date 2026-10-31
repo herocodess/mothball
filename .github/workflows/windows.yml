@@ -134,11 +134,29 @@ jobs:
           Start-Sleep 20
           if ($app.HasExited) { throw "the app exited with $($app.ExitCode)" }
 
-          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
-          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          # Capture the app's own window (PrintWindow), so it shows even when
+          # Windows puts something on top, like its first-run privacy screen.
+          Add-Type -AssemblyName System.Drawing
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class Win {
+            public struct RECT { public int Left, Top, Right, Bottom; }
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
+          }
+          '@
+          $h = (Get-Process Mothball).MainWindowHandle
+          if ($h -eq [IntPtr]::Zero) { throw 'the app has no window' }
+          $r = New-Object Win+RECT
+          [void][Win]::GetWindowRect($h, [ref]$r)
+          $bmp = New-Object System.Drawing.Bitmap ($r.Right - $r.Left), ($r.Bottom - $r.Top)
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $hdc = $g.GetHdc()
+          $ok = [Win]::PrintWindow($h, $hdc, 2)   # PW_RENDERFULLCONTENT
+          $g.ReleaseHdc($hdc)
           $bmp.Save("$PWD\shots\windows-${{ matrix.arch }}-installed.png")
+          "window $($bmp.Width)x$($bmp.Height), captured: $ok"
 
           # A second launch must bring the first window forward and exit.
           $second = Start-Process "$dir\Mothball.exe" -PassThru
