@@ -11,6 +11,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mothball/api.dart';
@@ -128,6 +129,9 @@ Future<void> shoot(WidgetTester tester, Widget app, String name,
 
 void main() {
   setUpAll(loadFonts);
+  // Tests draw shadows as solid blocks by default; draw them as the app does.
+  setUp(() => debugDisableShadows = false);
+  tearDown(() => debugDisableShadows = true);
 
   testWidgets('onboarding', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: false))), '1-onboarding'));
   testWidgets('home, access missing', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: true))), '2-home-reminder', size: const Size(1100, 1560)));
