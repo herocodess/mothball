@@ -68,10 +68,12 @@
     },
     {
       "when": "requirements.txt",
-      "run": "python -m venv .venv && .venv/bin/pip install -r requirements.txt"
+      "run": "python -m venv .venv && .venv/bin/pip install -r requirements.txt",
+      "windows": "python -m venv .venv && .venv\\Scripts\\pip install -r requirements.txt"
     },
     {
-      "run": "python -m venv .venv && .venv/bin/pip install -e ."
+      "run": "python -m venv .venv && .venv/bin/pip install -e .",
+      "windows": "python -m venv .venv && .venv\\Scripts\\pip install -e ."
     }
   ]
 }

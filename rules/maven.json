@@ -6,7 +6,7 @@
     { "path": "target", "requireAny": ["maven-status", "maven-archiver", "surefire-reports", "classes", "test-classes"] }
   ],
   "wake": [
-    { "when": "mvnw", "run": "./mvnw -q dependency:resolve" },
+    { "when": "mvnw", "run": "./mvnw -q dependency:resolve", "windows": "mvnw.cmd -q dependency:resolve" },
     { "run": "mvn -q dependency:resolve" }
   ]
 }

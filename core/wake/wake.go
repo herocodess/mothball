@@ -99,7 +99,7 @@ func commands(project string, entries []history.Entry, packs *pack.Set) []string
 			}
 			for _, w := range p.Wake {
 				if w.When == "" || exists(filepath.Join(project, w.When)) {
-					out = append(out, w.Run)
+					out = append(out, w.Command())
 					break
 				}
 			}

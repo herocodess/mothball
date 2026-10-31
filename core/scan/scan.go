@@ -242,7 +242,7 @@ func newestManifest(project string, p *pack.Pack) time.Time {
 func wakeCommand(project string, p *pack.Pack) string {
 	for _, w := range p.Wake {
 		if w.When == "" || anyExists(project, []string{w.When}) {
-			return w.Run
+			return w.Command()
 		}
 	}
 	return ""

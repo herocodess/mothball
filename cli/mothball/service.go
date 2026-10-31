@@ -197,14 +197,21 @@ func openApp() {
 			_ = exec.Command("open", "-b", "dev.mothball.mothball").Start()
 		}
 	case "windows":
+		// The app ships as Mothball.exe with the service in bin\ beside it.
 		if app == "" {
 			exe, _ := os.Executable()
-			app = filepath.Join(filepath.Dir(exe), "Mothball.exe")
+			app = filepath.Join(filepath.Dir(filepath.Dir(exe)), "Mothball.exe")
 		}
 		_ = exec.Command("cmd", "/C", "start", "", app).Start()
 	default:
+		// The app bundle has mothball-app with the service in bin/ beside it;
+		// otherwise look for mothball-app on PATH.
 		if app == "" {
-			app = "mothball-app"
+			exe, _ := os.Executable()
+			app = filepath.Join(filepath.Dir(filepath.Dir(exe)), "mothball-app")
+			if _, err := os.Stat(app); err != nil {
+				app = "mothball-app"
+			}
 		}
 		_ = exec.Command(app).Start()
 	}
