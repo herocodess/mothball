@@ -11,16 +11,17 @@ macOS names whichever program asks for access. During development that is your t
 - [x] First-run screen in the app explains why, opens Settings at Full Disk Access, and shows the program to add in Finder
 - [x] Reminder card while access is missing; "Check again" rescans once access is granted
 - [x] Ship the service inside `Mothball.app` as Mothball Agent.app, so the Full Disk Access entry is "Mothball" with its icon
-- [ ] Developer ID Application certificate on a personal team, and notarisation
-- [ ] `NSDesktopFolderUsageDescription`, `NSDocumentsFolderUsageDescription` and `NSDownloadsFolderUsageDescription` in Info.plist, in case a prompt is ever shown
+- [x] Developer ID Application certificate on a personal team, and notarisation
+- [x] `NSDesktopFolderUsageDescription`, `NSDocumentsFolderUsageDescription` and `NSDownloadsFolderUsageDescription` in Info.plist, in case a prompt is ever shown
 - [ ] Check on a clean Mac that the background service picks up access after it is granted, and restarts itself if it does not
 
 ## macOS
 
 - [x] Menu bar icon owned by the background service, as a template image
-- [ ] Hardened runtime, Developer ID signing and notarisation for the app and both binaries
-- [ ] Universal build (Apple silicon and Intel)
-- [ ] DMG and a Homebrew cask; the cask also links the CLI
+- [x] Hardened runtime, Developer ID signing and notarisation for the app and both binaries
+- [x] Universal build (Apple silicon and Intel)
+- [x] Signed, notarised, stapled DMG (`scripts/build-mac.sh --dmg`)
+- [ ] Homebrew cask; the cask also links the CLI
 - [ ] Folders on external disks: trash to that disk's own `.Trashes` folder instead of skipping
 
 ## Windows
