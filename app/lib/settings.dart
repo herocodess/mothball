@@ -58,6 +58,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _roots.dispose();
+    // Leaving without saving puts the saved appearance back.
+    if (!_saving) appearance.value = themeModeOf(widget.config.theme);
     super.dispose();
   }
 
@@ -94,6 +96,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 720),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  staggered(_Group(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 18, 20),
+                      child: Wrap(
+                        spacing: 20,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                            const Text('Appearance', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            const SizedBox(height: 4),
+                            Text('Match your system, or pick one.', style: TextStyle(color: quiet)),
+                          ]),
+                          SegmentedButton<String>(
+                            showSelectedIcon: false,
+                            segments: const [
+                              ButtonSegment(value: 'system', label: Text('System'), icon: Icon(Icons.contrast_rounded, size: 18)),
+                              ButtonSegment(value: 'light', label: Text('Light'), icon: Icon(Icons.light_mode_outlined, size: 18)),
+                              ButtonSegment(value: 'dark', label: Text('Dark'), icon: Icon(Icons.dark_mode_outlined, size: 18)),
+                            ],
+                            selected: {_c.theme},
+                            onSelectionChanged: (v) {
+                              setState(() => _c = _c.copyWith(theme: v.first));
+                              appearance.value = themeModeOf(v.first); // preview right away
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ])),
                   staggered(_Group(children: [
                     _Value(
                       title: 'Idle after',

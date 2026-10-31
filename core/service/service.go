@@ -45,6 +45,7 @@ type Service struct {
 	OnRestart func()
 
 	mu       sync.Mutex // one scan, clean or wake at a time
+	moveMu   sync.Mutex // held while files move; an update install waits only for this
 	log      *history.Log
 	scanMu   sync.RWMutex // guards lastScan and scanning; never held during work
 	lastScan *ScanSummary
@@ -253,7 +254,9 @@ func (s *Service) Clean(paths []string) ([]clean.Outcome, error) {
 			}
 		}
 	}
+	s.moveMu.Lock()
 	out := clean.Run(plan, c.IdleDays, s.scanner(), s.Trash, s.log, s.Now())
+	s.moveMu.Unlock()
 	_, _ = s.scanLocked()
 	return out, nil
 }
@@ -278,6 +281,8 @@ func (s *Service) CleanCaches(ids []string) ([]CacheResult, error) {
 		want[id] = true
 	}
 	var out []CacheResult
+	s.moveMu.Lock()
+	defer s.moveMu.Unlock()
 	for _, cc := range s.Caches.Survey() {
 		if !want[cc.ID] {
 			continue
@@ -310,6 +315,8 @@ func (s *Service) Wake(project string) error {
 	}
 	for _, p := range wake.Mothballed(entries, s.Packs) {
 		if p.Path == project {
+			s.moveMu.Lock()
+			defer s.moveMu.Unlock()
 			return wake.Run(p, s.log, os.Stdout, os.Stderr)
 		}
 	}
@@ -335,7 +342,9 @@ func (s *Service) Tick() {
 		return
 	}
 	if due := purge.Due(entries, c.AutoEmptyDays, s.Now()); len(due) > 0 {
+		s.moveMu.Lock()
 		freed, errs := purge.Run(due, s.log, s.Now())
+		s.moveMu.Unlock()
 		if freed > 0 {
 			s.event("emptied", "Emptied folders Mothball put in the Trash", freed)
 		}
@@ -380,6 +389,7 @@ func (s *Service) Tick() {
 		pick = append(pick, x)
 		picked += x.Bytes
 	}
+	s.moveMu.Lock()
 	var moved int64
 	if len(pick) > 0 {
 		for _, o := range clean.Run(pick, c.IdleDays, s.scanner(), s.Trash, s.log, s.Now()) {
@@ -417,6 +427,7 @@ func (s *Service) Tick() {
 	if moved+fromCaches == 0 {
 		s.event("autopilot", "Free space is below target, but there is nothing idle or cached to put away", 0)
 	}
+	s.moveMu.Unlock()
 	_, _ = s.scanLocked()
 }
 
@@ -497,13 +508,15 @@ func (s *Service) DownloadUpdate() error {
 }
 
 // InstallUpdate swaps in the downloaded version, then asks for a restart.
-// It waits for any scan, clean or wake in progress to finish first.
+// It waits for any clean, wake or emptying in progress to finish first.
 func (s *Service) InstallUpdate() error {
 	if s.Update == nil {
 		return update.ErrCannotInstall
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// Wait for any move in progress, not for scans: a scan only reads, and
+	// the service restarts right after anyway.
+	s.moveMu.Lock()
+	defer s.moveMu.Unlock()
 	if err := s.Update.Install(); err != nil {
 		return err
 	}

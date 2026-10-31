@@ -39,6 +39,15 @@ class MB {
       Theme.of(context).brightness == Brightness.dark ? accent : accentDeep;
 }
 
+/// The appearance the user picked. Follows the system until they choose.
+final appearance = ValueNotifier<ThemeMode>(ThemeMode.system);
+
+ThemeMode themeModeOf(String name) => switch (name) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      _ => ThemeMode.system,
+    };
+
 ThemeData buildTheme(Brightness b) {
   final dark = b == Brightness.dark;
   final scheme = ColorScheme.fromSeed(seedColor: MB.accent, brightness: b).copyWith(

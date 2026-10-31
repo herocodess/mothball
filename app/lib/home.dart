@@ -58,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
         st = await widget.api.status();
       }
       if (mounted) {
+        appearance.value = themeModeOf(st.config.theme);
         setState(() {
           _status = st;
           _offline = null;

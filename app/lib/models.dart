@@ -163,6 +163,7 @@ class MothballConfig {
     required this.checkMinutes,
     this.onboarded = false,
     this.skipUpdateCheck = false,
+    this.theme = 'system',
   });
 
   factory MothballConfig.fromJson(Map<String, dynamic> j) => MothballConfig(
@@ -174,6 +175,7 @@ class MothballConfig {
         checkMinutes: _int(j['checkMinutes']),
         onboarded: _bool(j['onboarded']),
         skipUpdateCheck: _bool(j['skipUpdateCheck']),
+        theme: _str(j['theme']).isEmpty ? 'system' : _str(j['theme']),
       );
 
   final List<String> roots;
@@ -184,6 +186,7 @@ class MothballConfig {
   final int checkMinutes;
   final bool onboarded;
   final bool skipUpdateCheck;
+  final String theme; // system, light or dark
 
   MothballConfig copyWith({
     List<String>? roots,
@@ -193,6 +196,7 @@ class MothballConfig {
     int? autoEmptyDays,
     bool? onboarded,
     bool? skipUpdateCheck,
+    String? theme,
   }) =>
       MothballConfig(
         roots: roots ?? this.roots,
@@ -203,6 +207,7 @@ class MothballConfig {
         checkMinutes: checkMinutes,
         onboarded: onboarded ?? this.onboarded,
         skipUpdateCheck: skipUpdateCheck ?? this.skipUpdateCheck,
+        theme: theme ?? this.theme,
       );
 
   Map<String, dynamic> toJson() => {
@@ -210,6 +215,7 @@ class MothballConfig {
         'idleDays': idleDays,
         'autopilot': autopilot,
         'skipUpdateCheck': skipUpdateCheck,
+        'theme': theme,
         'targetFreeGB': targetFreeGB,
         'autoEmptyDays': autoEmptyDays,
         'checkMinutes': checkMinutes,

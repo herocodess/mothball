@@ -50,7 +50,7 @@ macOS names whichever program asks for access. During development that is your t
 3. Build the Windows and Linux CLIs (`GOOS`/`GOARCH` for windows and linux, amd64 and arm64, `-X main.version=...`).
 4. Write `checksums-<version>.txt` covering every file (`shasum -a 256`). The in-app updater refuses a DMG that is not listed in it.
 5. Tag `v<version>`, then `gh release create v<version>` with the DMG, the CLIs and the checksums file.
-6. Update the cask and formula in `herocodess/homebrew-tap` (version and sha256).
+6. Update the cask and formula in `herocodess/homebrew-tap` (version and sha256). From 0.1.1 on, the cask carries `auto_updates true`, since the app updates itself.
 
 ### Updates
 
