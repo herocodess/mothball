@@ -1,0 +1,244 @@
+name: linux
+
+# Builds the Linux packages (AppImage, .deb, .rpm) for x64 and Arm64 on an
+# older Ubuntu, so they run on newer distros, then installs and checks each
+# one on real machines: Ubuntu 24.04 for the .deb, Fedora for the .rpm, and
+# the AppImage on its own. Each check opens the app (with a screenshot), runs
+# the command line tool, starts the background service, and uninstalls.
+#
+# On a version tag it attaches the packages to that release and adds them to
+# its checksums file.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: packages (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, os: ubuntu-22.04, elf: x86-64 }
+          - { arch: arm64, os: ubuntu-22.04-arm, elf: aarch64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang cmake ninja-build pkg-config libgtk-3-dev file desktop-file-utils appstream
+      - name: Flutter
+        run: |
+          git clone --depth 1 -b stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter --version && flutter precache --linux
+      - name: nfpm
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: ./scripts/build-linux.sh
+
+      - name: Checks
+        run: |
+          cd build/linux-release
+          ls -la
+          desktop-file-validate ../../packaging/linux/dev.mothball.mothball.desktop
+          out=$(appstreamcli validate --no-net dev.mothball.mothball.metainfo.xml 2>&1 || true)
+          echo "$out"
+          if echo "$out" | grep -q '^E:'; then echo "AppStream metadata has errors"; exit 1; fi
+          B=../../app/build/linux/${{ matrix.arch }}/release/bundle
+          for f in "$B/mothball-app" "$B/bin/mothball" "$B/lib/libapp.so" Mothball-*.AppImage; do
+            d=$(file -L "$f"); echo "$d"
+            echo "$d" | grep -q '${{ matrix.elf }}' || { echo "$f is not built for ${{ matrix.arch }}"; exit 1; }
+          done
+          dpkg-deb --info mothball_*.deb
+          dpkg-deb --contents mothball_*.deb | grep -E 'opt/mothball/mothball-app|usr/bin/mothball|applications/dev.mothball.mothball.desktop|metainfo|256x256'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            build/linux-release/*.AppImage
+            build/linux-release/*.deb
+            build/linux-release/*.rpm
+            build/linux-release/mothball-*-linux-*
+
+  deb:
+    name: .deb on Ubuntu 24.04 (${{ matrix.arch }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, os: ubuntu-24.04 }
+          - { arch: arm64, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: dist
+      - name: Install
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ./dist/mothball_*.deb xvfb imagemagick dbus-x11 desktop-file-utils
+      - name: Installed correctly
+        run: ./.github/linux-check.sh installed
+      - name: Open the app, then open it again
+        run: ./.github/linux-check.sh app mothball-app shots/ubuntu-${{ matrix.arch }}.png
+      - name: Background service
+        run: ./.github/linux-check.sh service mothball
+      - name: Uninstall leaves nothing behind
+        run: |
+          mothball service uninstall
+          sudo apt-get remove -y -q mothball
+          ./.github/linux-check.sh removed
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots-ubuntu-${{ matrix.arch }}
+          path: shots/
+
+  rpm:
+    name: .rpm on Fedora (${{ matrix.arch }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, os: ubuntu-24.04 }
+          - { arch: arm64, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.os }}
+    container: fedora:latest
+    steps:
+      - name: Tools
+        run: dnf install -y -q git xorg-x11-server-Xvfb xorg-x11-xauth ImageMagick dbus-daemon dbus-x11 procps-ng desktop-file-utils which findutils mesa-dri-drivers mesa-libEGL mesa-libGL
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: dist
+      - name: Install
+        run: dnf install -y -q ./dist/mothball-*.rpm
+      - name: Installed correctly
+        run: ./.github/linux-check.sh installed
+      - name: Open the app, then open it again
+        run: ./.github/linux-check.sh app mothball-app shots/fedora-${{ matrix.arch }}.png
+      - name: Background service
+        run: ./.github/linux-check.sh service mothball
+      - name: Uninstall leaves nothing behind
+        run: |
+          mothball service uninstall
+          dnf remove -y -q mothball
+          ./.github/linux-check.sh removed
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots-fedora-${{ matrix.arch }}
+          path: shots/
+
+  appimage:
+    name: AppImage (${{ matrix.arch }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, os: ubuntu-24.04 }
+          - { arch: arm64, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: dist
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb imagemagick dbus-x11 fuse3 libgtk-3-0t64
+      - name: Runs as an AppImage
+        run: |
+          mkdir -p ~/Applications
+          cp dist/Mothball-*.AppImage ~/Applications/Mothball.AppImage
+          chmod +x ~/Applications/Mothball.AppImage
+          V=$(grep '^version:' app/pubspec.yaml | sed 's/version: *//; s/+.*//')
+          out=$(~/Applications/Mothball.AppImage version)
+          echo "$out"
+          [ "$out" = "mothball $V" ] || { echo "AppImage runs the CLI wrong"; exit 1; }
+      - name: Open the app, then open it again
+        run: ./.github/linux-check.sh app "$HOME/Applications/Mothball.AppImage" shots/appimage-${{ matrix.arch }}.png
+      - name: Background service points at the AppImage
+        run: |
+          ./.github/linux-check.sh service "$HOME/Applications/Mothball.AppImage"
+          entry=$(cat ~/.config/systemd/user/mothball.service ~/.config/autostart/mothball-service.desktop 2>/dev/null || true)
+          echo "$entry"
+          echo "$entry" | grep -q "$HOME/Applications/Mothball.AppImage" || { echo "start at login does not point at the AppImage file"; exit 1; }
+          if echo "$entry" | grep -q '/tmp/.mount_'; then echo "start at login points inside the temporary mount"; exit 1; fi
+          ~/Applications/Mothball.AppImage service uninstall
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots-appimage-${{ matrix.arch }}
+          path: shots/
+
+  publish:
+    name: attach to the release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [deb, rpm, appimage]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # One release job at a time across workflows, so checksum updates from
+    # the Windows and Linux builds never overwrite each other.
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dl
+          pattern: linux-*
+          merge-multiple: true
+      - name: Wait for the release
+        run: |
+          for i in $(seq 1 60); do
+            gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 && exit 0
+            sleep 30
+          done
+          echo "release $TAG not found"; exit 1
+      - name: Upload and update checksums
+        run: |
+          V="${TAG#v}"
+          mkdir out
+          find dl -type f \( -name "Mothball-$V-linux-*.AppImage" -o -name "mothball_$V-*.deb" -o -name "mothball-$V-*.rpm" \) -exec cp {} out/ \;
+          cd out
+          ls -la
+          files=$(ls)
+          [ "$(echo "$files" | wc -l)" -eq 6 ] || { echo "expected 6 Linux packages"; exit 1; }
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p "checksums-$V.txt" -O ../sums.txt || touch ../sums.txt
+          for f in $files; do
+            grep -v "  $f\$" ../sums.txt > ../sums.new || true
+            mv ../sums.new ../sums.txt
+            sha256sum "$f" >> ../sums.txt
+          done
+          sort -k2 ../sums.txt -o "../checksums-$V.txt"
+          cat "../checksums-$V.txt"
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber $files "../checksums-$V.txt"

@@ -228,6 +228,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # One release job at a time across workflows, so checksum updates from
+    # the Windows and Linux builds never overwrite each other.
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}

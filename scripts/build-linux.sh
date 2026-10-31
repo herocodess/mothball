@@ -12,7 +12,7 @@
 #
 # Output, in build/linux-release:
 #   Mothball-<v>-linux-<x86_64|aarch64>.AppImage
-#   mothball_<v>_<amd64|arm64>.deb
+#   mothball_<v>-1_<amd64|arm64>.deb
 #   mothball-<v>-1.<x86_64|aarch64>.rpm
 #   mothball-<v>-linux-<amd64|arm64>        the command line tool on its own
 set -eu
