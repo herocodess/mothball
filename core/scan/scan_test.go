@@ -235,3 +235,25 @@ func TestNestedProjectsInMonorepo(t *testing.T) {
 		t.Errorf("want 4 candidates, got %d", len(got))
 	}
 }
+
+func TestSkippedFoldersUnlessNamed(t *testing.T) {
+	home := t.TempDir()
+	docs := filepath.Join(home, "Documents")
+	app := filepath.Join(docs, "app")
+	touch(t, app, "pubspec.yaml", "build/flutter_assets/a")
+	other := filepath.Join(home, "dev", "web")
+	touch(t, other, "package.json", "node_modules/.bin/x")
+
+	s := New(packs(t), home)
+	got := paths(s.Scan(Options{Roots: []string{home}, Home: home, Skip: []string{docs}}))
+	if _, ok := got[filepath.Join(app, "build")]; ok {
+		t.Error("scanned a skipped folder")
+	}
+	if _, ok := got[filepath.Join(other, "node_modules")]; !ok {
+		t.Error("skipping one folder hid another")
+	}
+	got = paths(s.Scan(Options{Roots: []string{app}, Home: home, Skip: []string{docs}}))
+	if _, ok := got[filepath.Join(app, "build")]; !ok {
+		t.Error("a folder the user named was skipped")
+	}
+}

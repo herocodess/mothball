@@ -9,6 +9,7 @@ What it shows:
 - Mothballed projects, with "Wake" (highlighted when you're back on one)
 - Recent autopilot activity
 - Settings: idle threshold, free space target, auto-empty, folders to watch
+- On macOS, a first-run screen that asks once for Full Disk Access, so Desktop, Documents and Downloads can be scanned without a prompt per folder
 
 The app has no third-party packages; the logo is drawn in code.
 

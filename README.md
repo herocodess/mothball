@@ -29,6 +29,7 @@ Every project you clone, build and forget keeps its `node_modules`, `build`, `.d
 - Optional auto-empty after a grace period (7 days by default), only ever for folders Mothball itself put in the Trash, each checked against its record
 - Skips projects with uncommitted changes or recent activity
 - Runs entirely on your machine. No network, no telemetry
+- On macOS, asks once for Full Disk Access instead of a prompt per folder; until then it skips the folders macOS keeps private
 
 ## What it covers
 

@@ -23,6 +23,8 @@ type Config struct {
 	AutoEmptyDays int `json:"autoEmptyDays"`
 	// CheckMinutes is how often free space is checked.
 	CheckMinutes int `json:"checkMinutes"`
+	// Onboarded is set once the user has seen the first-run screen.
+	Onboarded bool `json:"onboarded"`
 }
 
 // Default is the starting configuration: everything manual until the user

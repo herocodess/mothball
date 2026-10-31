@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/herocodess/mothball/core/access"
 	"github.com/herocodess/mothball/core/clean"
 	"github.com/herocodess/mothball/core/pack"
 	"github.com/herocodess/mothball/core/scan"
@@ -84,6 +85,20 @@ type scanSetup struct {
 	result  scan.Result
 	roots   []string
 	base    string
+	skipped []string // privacy-guarded folders left out
+}
+
+// skipNote explains folders left out for lack of access.
+func (st *scanSetup) skipNote(w io.Writer) {
+	if len(st.skipped) == 0 {
+		return
+	}
+	var names []string
+	for _, p := range st.skipped {
+		names = append(names, filepath.Base(p))
+	}
+	fmt.Fprintf(w, "\nSkipped %s: macOS needs Full Disk Access for your terminal to scan them.\n", strings.Join(names, ", "))
+	fmt.Fprintln(w, "Grant it in System Settings > Privacy & Security > Full Disk Access, or scan one directly: mothball scan ~/Documents/my-project")
 }
 
 func doScan(roots []string, stderr io.Writer) (*scanSetup, int) {
@@ -101,12 +116,22 @@ func doScan(roots []string, stderr io.Writer) (*scanSetup, int) {
 		return nil, 1
 	}
 	s := scan.New(packs, home)
-	res := s.Scan(scan.Options{Roots: roots, Home: home, Now: time.Now()})
+	var skip []string
+	if !access.HasFullDisk(home) {
+		skip = access.Guarded(home)
+	}
+	res := s.Scan(scan.Options{Roots: roots, Home: home, Now: time.Now(), Skip: skip})
 	base := ""
 	if len(roots) == 1 {
 		base, _ = filepath.Abs(roots[0])
 	}
-	return &scanSetup{scanner: s, result: res, roots: roots, base: base}, 0
+	var skipped []string
+	for _, r := range roots {
+		if abs, err := filepath.Abs(r); err == nil {
+			skipped = append(skipped, access.SkipFor(abs, skip)...)
+		}
+	}
+	return &scanSetup{scanner: s, result: res, roots: roots, base: base, skipped: skipped}, 0
 }
 
 func cmdScan(args []string, stdout, stderr io.Writer) int {
@@ -169,6 +194,7 @@ func cmdScan(args []string, stdout, stderr io.Writer) int {
 	if len(idle) > 0 {
 		fmt.Fprintln(stdout, "Nothing was changed. Run `mothball clean` to put it away.")
 	}
+	st.skipNote(stdout)
 	return 0
 }
 

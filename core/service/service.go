@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/herocodess/mothball/core/access"
 	"github.com/herocodess/mothball/core/clean"
 	"github.com/herocodess/mothball/core/config"
 	"github.com/herocodess/mothball/core/disk"
@@ -28,9 +29,10 @@ type Service struct {
 	Packs *pack.Set
 
 	// Swappable for tests.
-	Free  func(path string) (uint64, error)
-	Trash trash.Trasher
-	Now   func() time.Time
+	Free        func(path string) (uint64, error)
+	HasFullDisk func(home string) bool
+	Trash       trash.Trasher
+	Now         func() time.Time
 
 	mu       sync.Mutex // one scan, clean or wake at a time
 	log      *history.Log
@@ -67,7 +69,7 @@ func New(dir, home string, packs *pack.Set) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{Dir: dir, Home: home, Packs: packs, Free: disk.Free,
+	return &Service{Dir: dir, Home: home, Packs: packs, Free: disk.Free, HasFullDisk: access.HasFullDisk,
 		Trash: trash.Default(), Now: time.Now, log: log}, nil
 }
 
@@ -101,7 +103,7 @@ func (s *Service) scanLocked() (*ScanSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := s.scanner().Scan(scan.Options{Roots: s.roots(c), Home: s.Home, Now: s.Now()})
+	res := s.scanner().Scan(scan.Options{Roots: s.roots(c), Home: s.Home, Now: s.Now(), Skip: s.Access().Skipped})
 	sum := &ScanSummary{At: s.Now(), Projects: res.Projects}
 	sum.Idle = clean.Plan(res.Candidates, c.IdleDays)
 	idle := map[string]bool{}
@@ -119,8 +121,20 @@ func (s *Service) scanLocked() (*ScanSummary, error) {
 	return sum, nil
 }
 
+// Access reports whether the service can read privacy-guarded folders, and
+// which ones it leaves out of scans until it can.
+func (s *Service) Access() access.Info {
+	exe, _ := os.Executable()
+	info := access.Info{FullDisk: s.HasFullDisk(s.Home), Executable: exe}
+	if !info.FullDisk {
+		info.Skipped = access.Guarded(s.Home)
+	}
+	return info
+}
+
 // Status is what the menu bar and app show at a glance.
 type Status struct {
+	Access       access.Info    `json:"access"`
 	FreeBytes    uint64         `json:"freeBytes"`
 	TargetBytes  uint64         `json:"targetBytes"`
 	WaitingBytes int64          `json:"waitingBytes"` // in the Trash from Mothball, not yet emptied
@@ -144,6 +158,7 @@ func (s *Service) Status() (Status, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return Status{
+		Access:       s.Access(),
 		FreeBytes:    free,
 		TargetBytes:  uint64(c.TargetFreeGB) << 30,
 		WaitingBytes: purge.WaitingBytes(entries),

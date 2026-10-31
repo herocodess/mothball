@@ -93,6 +93,21 @@ class ServiceEvent {
   final int bytes;
 }
 
+class AccessInfo {
+  AccessInfo({required this.fullDisk, required this.skipped, required this.executable});
+
+  factory AccessInfo.fromJson(Map<String, dynamic> j) => AccessInfo(
+        // Older services do not report access; treat that as granted.
+        fullDisk: j.isEmpty ? true : _bool(j['fullDisk']),
+        skipped: _list(j['skipped']).map((e) => e.toString()).toList(),
+        executable: _str(j['executable']),
+      );
+
+  final bool fullDisk;
+  final List<String> skipped;
+  final String executable;
+}
+
 class MothballConfig {
   MothballConfig({
     required this.roots,
@@ -101,6 +116,7 @@ class MothballConfig {
     required this.targetFreeGB,
     required this.autoEmptyDays,
     required this.checkMinutes,
+    this.onboarded = false,
   });
 
   factory MothballConfig.fromJson(Map<String, dynamic> j) => MothballConfig(
@@ -110,6 +126,7 @@ class MothballConfig {
         targetFreeGB: _int(j['targetFreeGB']),
         autoEmptyDays: _int(j['autoEmptyDays']),
         checkMinutes: _int(j['checkMinutes']),
+        onboarded: _bool(j['onboarded']),
       );
 
   final List<String> roots;
@@ -118,6 +135,7 @@ class MothballConfig {
   final int targetFreeGB;
   final int autoEmptyDays;
   final int checkMinutes;
+  final bool onboarded;
 
   MothballConfig copyWith({
     List<String>? roots,
@@ -125,6 +143,7 @@ class MothballConfig {
     bool? autopilot,
     int? targetFreeGB,
     int? autoEmptyDays,
+    bool? onboarded,
   }) =>
       MothballConfig(
         roots: roots ?? this.roots,
@@ -133,6 +152,7 @@ class MothballConfig {
         targetFreeGB: targetFreeGB ?? this.targetFreeGB,
         autoEmptyDays: autoEmptyDays ?? this.autoEmptyDays,
         checkMinutes: checkMinutes,
+        onboarded: onboarded ?? this.onboarded,
       );
 
   Map<String, dynamic> toJson() => {
@@ -142,11 +162,13 @@ class MothballConfig {
         'targetFreeGB': targetFreeGB,
         'autoEmptyDays': autoEmptyDays,
         'checkMinutes': checkMinutes,
+        'onboarded': onboarded,
       };
 }
 
 class Status {
   Status({
+    required this.access,
     required this.freeBytes,
     required this.targetBytes,
     required this.waitingBytes,
@@ -157,6 +179,7 @@ class Status {
   });
 
   factory Status.fromJson(Map<String, dynamic> j) => Status(
+        access: AccessInfo.fromJson((j['access'] as Map<String, dynamic>?) ?? const {}),
         freeBytes: _int(j['freeBytes']),
         targetBytes: _int(j['targetBytes']),
         waitingBytes: _int(j['waitingBytes']),
@@ -166,6 +189,7 @@ class Status {
         events: _list(j['events']).map((e) => ServiceEvent.fromJson(e as Map<String, dynamic>)).toList(),
       );
 
+  final AccessInfo access;
   final int freeBytes;
   final int targetBytes;
   final int waitingBytes;

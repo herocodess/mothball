@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/herocodess/mothball/core/access"
 	"github.com/herocodess/mothball/core/pack"
 )
 
@@ -36,6 +37,9 @@ type Options struct {
 	Home        string
 	Now         time.Time
 	Concurrency int
+	// Skip lists folders to leave out, such as privacy-guarded ones. A root
+	// inside a skipped folder is still scanned: the user asked for it.
+	Skip []string
 }
 
 // Result is what a scan found.
@@ -72,7 +76,11 @@ func (s *Scanner) Scan(opt Options) Result {
 		if err != nil {
 			continue
 		}
-		s.walk(abs, opt.Now, &res, seen)
+		skip := map[string]bool{}
+		for _, p := range access.SkipFor(abs, opt.Skip) {
+			skip[normalize(p)] = true
+		}
+		s.walk(abs, opt.Now, &res, seen, skip)
 	}
 	s.measure(res.Candidates, opt.Concurrency)
 	sort.Slice(res.Candidates, func(i, j int) bool {
@@ -81,8 +89,8 @@ func (s *Scanner) Scan(opt Options) Result {
 	return res
 }
 
-func (s *Scanner) walk(dir string, now time.Time, res *Result, seen map[string]bool) {
-	if s.guard.Denied(dir) {
+func (s *Scanner) walk(dir string, now time.Time, res *Result, seen, skip map[string]bool) {
+	if s.guard.Denied(dir) || skip[normalize(dir)] {
 		return
 	}
 	entries, err := os.ReadDir(dir)
@@ -143,7 +151,7 @@ func (s *Scanner) walk(dir string, now time.Time, res *Result, seen map[string]b
 		if neverDescend[e.Name()] || claimed[child] {
 			continue
 		}
-		s.walk(child, now, res, seen)
+		s.walk(child, now, res, seen, skip)
 	}
 }
 

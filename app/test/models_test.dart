@@ -39,11 +39,22 @@ void main() {
     expect(st.events, isEmpty);
   });
 
+  test('reads access, and treats an older service without it as granted', () {
+    final st = Status.fromJson(jsonDecode(statusJson) as Map<String, dynamic>);
+    expect(st.access.fullDisk, isTrue);
+    final j = jsonDecode(statusJson) as Map<String, dynamic>;
+    j['access'] = {'fullDisk': false, 'skipped': ['/Users/u/Desktop', '/Users/u/Documents'], 'executable': '/Users/u/go/bin/mothball'};
+    final denied = Status.fromJson(j);
+    expect(denied.access.fullDisk, isFalse);
+    expect(denied.access.skipped, hasLength(2));
+  });
+
   test('config round-trips', () {
-    final c = Status.fromJson(jsonDecode(statusJson) as Map<String, dynamic>).config.copyWith(autopilot: true);
+    final c = Status.fromJson(jsonDecode(statusJson) as Map<String, dynamic>).config.copyWith(autopilot: true, onboarded: true);
     final back = MothballConfig.fromJson(jsonDecode(jsonEncode(c.toJson())) as Map<String, dynamic>);
     expect(back.autopilot, isTrue);
     expect(back.targetFreeGB, 50);
+    expect(back.onboarded, isTrue);
   });
 
   test('formats bytes like the CLI', () {

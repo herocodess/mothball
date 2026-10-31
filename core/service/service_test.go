@@ -179,3 +179,22 @@ func TestServeWritesPrivateEndpoint(t *testing.T) {
 		t.Fatalf("status %d", resp.StatusCode)
 	}
 }
+
+func TestNoFullDiskAccessSkipsGuardedFolders(t *testing.T) {
+	s, _ := newService(t, 1<<40)
+	s.HasFullDisk = func(string) bool { return false }
+	st, err := s.Status()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Access.FullDisk {
+		t.Fatal("reported access it does not have")
+	}
+	if runtime.GOOS == "darwin" && len(st.Access.Skipped) == 0 {
+		t.Fatal("no guarded folders listed on macOS")
+	}
+	s.HasFullDisk = func(string) bool { return true }
+	if st, _ := s.Status(); !st.Access.FullDisk || len(st.Access.Skipped) != 0 {
+		t.Fatalf("access = %+v", st.Access)
+	}
+}

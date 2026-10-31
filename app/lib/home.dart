@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'access.dart';
 import 'api.dart';
 import 'logo.dart';
 import 'models.dart';
@@ -39,7 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _refresh({bool scanIfNeeded = false}) async {
     try {
       var st = await widget.api.status();
-      if (scanIfNeeded && st.lastScan == null) {
+      final justGranted = _status != null && !_status!.access.fullDisk && st.access.fullDisk;
+      if (st.access.fullDisk && !st.config.onboarded) {
+        await widget.api.saveConfig(st.config.copyWith(onboarded: true));
+        st = await widget.api.status();
+      }
+      if (justGranted || (scanIfNeeded && st.lastScan == null)) {
         await _run('Scanning your projects', () => widget.api.scan());
         st = await widget.api.status();
       }
@@ -164,6 +171,12 @@ class _HomeScreenState extends State<HomeScreen> {
           _Offline(reason: _offline!, onRetry: () => _refresh(scanIfNeeded: true))
         else if (st == null)
           const Center(child: CircularProgressIndicator())
+        else if (Platform.isMacOS && !st.access.fullDisk && !st.config.onboarded)
+          AccessOnboarding(
+            access: st.access,
+            onCheck: () => _refresh(),
+            onSkip: () => _saveConfig(st.config.copyWith(onboarded: true)),
+          )
         else
           RefreshIndicator(
             onRefresh: _scan,
@@ -174,6 +187,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 760),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      if (Platform.isMacOS && !st.access.fullDisk) ...[
+                        AccessReminder(access: st.access, onCheck: _scan),
+                        const SizedBox(height: 16),
+                      ],
                       _SpaceCard(status: st, onAutopilot: (v) => _saveConfig(st.config.copyWith(autopilot: v))),
                       const SizedBox(height: 16),
                       _IdleCard(scan: st.lastScan, idleDays: st.config.idleDays, onScan: _scan, onPutAway: _putAway),
