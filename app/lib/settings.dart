@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
+import 'api.dart';
 import 'models.dart';
 import 'motion.dart';
 import 'theme.dart';
@@ -157,10 +160,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ])),
-                  staggered(_Group(children: [
+                  if (Platform.isWindows)
+                    staggered(_Group(children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('Auto-empty', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Not on Windows yet. Mothball can\'t safely tell its own folders apart from the rest of your Recycle Bin, so emptying stays with you.',
+                            style: TextStyle(color: quiet, height: 1.45),
+                          ),
+                        ]),
+                      ),
+                    ]))
+                  else
+                    staggered(_Group(children: [
                     _Toggle(
                       title: 'Auto-empty',
-                      hint: 'Permanently empty the folders Mothball put in the Trash after a grace period. Nothing else in the Trash is touched.',
+                      hint: 'Permanently empty the folders Mothball put in the $trashName after a grace period. Nothing else in it is touched.',
                       value: _c.autoEmptyDays > 0,
                       onChanged: (v) => setState(() => _c = _c.copyWith(autoEmptyDays: v ? 7 : 0)),
                     ),

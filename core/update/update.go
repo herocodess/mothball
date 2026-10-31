@@ -98,27 +98,36 @@ type Manifest struct {
 type Updater struct {
 	Current string // this build's version
 	Dir     string // where downloads are kept
-	// App is the Mothball.app this service runs from, or "" when it does
-	// not run from an app bundle (the CLI on its own, Windows, Linux).
+	// App is what an update replaces: the Mothball.app this service runs
+	// from on macOS, or the install folder on Windows. "" when Mothball runs
+	// on its own (the CLI, Linux, a portable copy) and cannot update itself.
 	App string
 	// API is the GitHub API base URL.
 	API string
 
-	HTTP *http.Client
-	Mac  Mac // swappable for tests
-	Now  func() time.Time
+	HTTP   *http.Client
+	Mac    Mac // swappable for tests
+	Win    Win // swappable for tests
+	GOOS   string
+	GOARCH string
+	Now    func() time.Time
 
 	mu      sync.Mutex
 	st      State
 	release Release
-	staged  string // verified new app, next to App
+	staged  string // verified new app next to App (macOS), or installer (Windows)
+	sum     string // expected SHA-256 of a staged Windows installer
 }
 
 // New makes an updater for the running build.
 func New(current, dir string) *Updater {
-	u := &Updater{Current: current, Dir: dir, API: "https://api.github.com", HTTP: &http.Client{Timeout: 30 * time.Second}, Now: time.Now, Mac: realMac{}}
-	if runtime.GOOS == "darwin" {
+	u := &Updater{Current: current, Dir: dir, API: "https://api.github.com", HTTP: &http.Client{Timeout: 30 * time.Second},
+		Now: time.Now, Mac: realMac{}, Win: realWin{}, GOOS: runtime.GOOS, GOARCH: runtime.GOARCH}
+	switch runtime.GOOS {
+	case "darwin":
 		u.App = AppBundle()
+	case "windows":
+		u.App = WindowsAppDir()
 	}
 	u.st = State{Current: current, CanInstall: u.canInstall()}
 	u.cleanLeftovers()
@@ -254,6 +263,9 @@ func (u *Updater) Download(ctx context.Context) error {
 }
 
 func (u *Updater) download(ctx context.Context, rel Release, version string) (string, error) {
+	if u.GOOS == "windows" {
+		return u.downloadWindows(ctx, rel, version)
+	}
 	name := "Mothball-" + version + ".dmg"
 	url, size, ok := rel.asset(name)
 	if !ok {
@@ -432,6 +444,9 @@ func (u *Updater) Install() error {
 }
 
 func (u *Updater) swap(staged string) error {
+	if u.GOOS == "windows" {
+		return u.runInstaller(staged)
+	}
 	if err := u.verify(staged); err != nil { // again: it sat on disk meanwhile
 		return err
 	}
@@ -453,6 +468,13 @@ func (u *Updater) cleanLeftovers() {
 	if u.App == "" {
 		return
 	}
+	if u.GOOS == "windows" {
+		old, _ := filepath.Glob(filepath.Join(u.Dir, "Mothball-*-setup.exe"))
+		for _, m := range old {
+			_ = os.Remove(m)
+		}
+		return
+	}
 	matches, _ := filepath.Glob(filepath.Join(filepath.Dir(u.App), ".Mothball-*.app"))
 	for _, m := range matches {
 		_ = os.RemoveAll(m)
@@ -462,6 +484,12 @@ func (u *Updater) cleanLeftovers() {
 func (u *Updater) canInstall() bool {
 	if u.App == "" {
 		return false
+	}
+	if u.GOOS == "windows" {
+		// Installed with the installer (not a portable or Scoop copy), which
+		// is what an update runs.
+		_, err := os.Stat(filepath.Join(u.App, "unins000.exe"))
+		return err == nil
 	}
 	dir := filepath.Dir(u.App)
 	if strings.HasPrefix(dir, "/Volumes/") || strings.Contains(u.App, "/AppTranslocation/") {

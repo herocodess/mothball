@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'models.dart';
 
+/// What the system calls its bin: "Recycle Bin" on Windows, "Trash" elsewhere.
+final String trashName = Platform.isWindows ? 'Recycle Bin' : 'Trash';
+
 /// Thrown when the background service is not running or cannot be reached.
 class ServiceUnavailable implements Exception {
   ServiceUnavailable(this.reason);
@@ -123,7 +126,8 @@ class MothballApi {
     final candidates = Platform.isMacOS
         ? ['$dir/../Library/LoginItems/Mothball Agent.app/Contents/MacOS/mothball']
         : Platform.isWindows
-            ? ['$dir\\bin\\mothball.exe']
+            // mothballw.exe has no console window, so nothing flashes on screen.
+            ? ['$dir\\bin\\mothballw.exe', '$dir\\bin\\mothball.exe']
             : ['$dir/bin/mothball'];
     for (final c in candidates) {
       if (File(c).existsSync()) return File(c).absolute.path;

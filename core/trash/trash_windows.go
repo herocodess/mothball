@@ -3,8 +3,8 @@ package trash
 import (
 	"errors"
 	"fmt"
+	"github.com/herocodess/mothball/core/proc"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -24,7 +24,7 @@ func (windowsTrash) Trash(path string) (string, error) {
 	if _, err := os.Lstat(path); err != nil {
 		return "", err
 	}
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", recycleScript)
+	cmd := proc.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", recycleScript)
 	cmd.Env = append(os.Environ(), "MOTHBALL_PATH="+path)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

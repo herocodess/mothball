@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
         content: SizedBox(
           width: 420,
           child: Text(
-            '${items.length == 1 ? 'This folder moves' : '${items.length} folders move'} to the Trash. '
+            '${items.length == 1 ? 'This folder moves' : '${items.length} folders move'} to the $trashName. '
             'Your code is never touched, and any project can be woken later with its usual install command.',
           ),
         ),
@@ -529,7 +529,7 @@ class _SpacePanel extends StatelessWidget {
         Wrap(spacing: 20, runSpacing: 8, children: [
           const _Legend(color: MB.accent, label: 'Free now'),
           if (reclaim > 0) _Legend(color: MB.accent, striped: true, label: '${humanBytes(reclaim)} you can get back'),
-          if (st.waitingBytes > 0) _Legend(color: quiet, label: '${humanBytes(st.waitingBytes)} waiting in the Trash'),
+          if (st.waitingBytes > 0) _Legend(color: quiet, label: '${humanBytes(st.waitingBytes)} waiting in the $trashName'),
         ]),
       ]),
     );
@@ -770,7 +770,7 @@ class _IdlePanel extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     Flexible(
-                      child: Text('Moves to the Trash. Your code stays put.',
+                      child: Text('Moves to the $trashName. Your code stays put.',
                           style: TextStyle(fontSize: 13, color: MB.quiet(context))),
                     ),
                   ]),

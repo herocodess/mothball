@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/herocodess/mothball/core/proc"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -66,14 +66,16 @@ func cmdService(args []string, stdout, stderr io.Writer) int {
 		withTray := tray.Available() && !hasFlag(args[1:], "--no-tray")
 
 		// After an update is installed: give the app a moment to quit, open
-		// the new one, then exit with a failure code so launchd or systemd
+		// the new one (macOS), then exit with a failure code so launchd
 		// starts the service again from the new copy.
 		exitCode := 0
 		s.Update = update.New(version, filepath.Join(s.Dir, "updates"))
 		s.OnRestart = func() {
 			time.Sleep(1500 * time.Millisecond)
-			if app := s.Update.App; app != "" {
-				_ = exec.Command("open", app).Start()
+			// On Windows the installer reopens the app and starts the
+			// service again; on macOS that is done here and by launchd.
+			if app := s.Update.App; app != "" && runtime.GOOS == "darwin" {
+				_ = proc.Command("open", app).Start()
 			}
 			exitCode = restartExitCode
 			shutdown()
@@ -190,11 +192,11 @@ func openApp() {
 	case "darwin":
 		switch {
 		case app != "":
-			_ = exec.Command("open", app).Start()
+			_ = proc.Command("open", app).Start()
 		case appBundle() != "":
-			_ = exec.Command("open", appBundle()).Start()
+			_ = proc.Command("open", appBundle()).Start()
 		default:
-			_ = exec.Command("open", "-b", "dev.mothball.mothball").Start()
+			_ = proc.Command("open", "-b", "dev.mothball.mothball").Start()
 		}
 	case "windows":
 		// The app ships as Mothball.exe with the service in bin\ beside it.
@@ -202,7 +204,7 @@ func openApp() {
 			exe, _ := os.Executable()
 			app = filepath.Join(filepath.Dir(filepath.Dir(exe)), "Mothball.exe")
 		}
-		_ = exec.Command("cmd", "/C", "start", "", app).Start()
+		_ = proc.Command(app).Start()
 	default:
 		// The app bundle has mothball-app with the service in bin/ beside it;
 		// otherwise look for mothball-app on PATH.
@@ -213,13 +215,64 @@ func openApp() {
 				app = "mothball-app"
 			}
 		}
-		_ = exec.Command(app).Start()
+		_ = proc.Command(app).Start()
 	}
 }
 
 func appBundle() string { return update.AppBundle() }
 
 const launchdLabel = "dev.mothball.service"
+
+// windowsRunKey is the per-user list of programs Windows starts at login.
+const windowsRunKey = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+
+// windowsServiceExe is the copy of Mothball that runs in the background on
+// Windows: mothballw.exe, built without a console window, when it sits next
+// to this one; otherwise this binary.
+func windowsServiceExe(exe string) string {
+	w := filepath.Join(filepath.Dir(exe), "mothballw.exe")
+	if _, err := os.Stat(w); err == nil {
+		return w
+	}
+	return exe
+}
+
+// serviceRunning reports whether a service answers on its endpoint.
+func serviceRunning() bool {
+	s, err := newService()
+	if err != nil {
+		return false
+	}
+	ep, err := service.ReadEndpoint(s.Dir)
+	if err != nil {
+		return false
+	}
+	req, _ := http.NewRequest("GET", ep.URL+"/v1/status", nil)
+	req.Header.Set("Authorization", "Bearer "+ep.Token)
+	resp, err := (&http.Client{Timeout: 2 * time.Second}).Do(req)
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode == 200
+}
+
+// stopRunningService ends the background service, found through the
+// process id it wrote to its endpoint file.
+func stopRunningService() {
+	s, err := newService()
+	if err != nil {
+		return
+	}
+	ep, err := service.ReadEndpoint(s.Dir)
+	if err != nil || ep.PID <= 0 || ep.PID == os.Getpid() {
+		return
+	}
+	if p, err := os.FindProcess(ep.PID); err == nil {
+		_ = p.Kill()
+	}
+	_ = os.Remove(service.EndpointFile(s.Dir))
+}
 
 // restartExitCode asks launchd or systemd to start the service again.
 const restartExitCode = 75
@@ -259,8 +312,8 @@ func installService(stdout, stderr io.Writer) int {
 			return 1
 		}
 		uid := strconv.Itoa(os.Getuid())
-		_ = exec.Command("launchctl", "bootout", "gui/"+uid, plist).Run()
-		if out, err := exec.Command("launchctl", "bootstrap", "gui/"+uid, plist).CombinedOutput(); err != nil {
+		_ = proc.Command("launchctl", "bootout", "gui/"+uid, plist).Run()
+		if out, err := proc.Command("launchctl", "bootstrap", "gui/"+uid, plist).CombinedOutput(); err != nil {
 			fmt.Fprintf(stderr, "mothball: launchctl: %v %s\n", err, out)
 			return 1
 		}
@@ -276,18 +329,26 @@ func installService(stdout, stderr io.Writer) int {
 			return 1
 		}
 		for _, a := range [][]string{{"daemon-reload"}, {"enable", "--now", "mothball.service"}} {
-			if out, err := exec.Command("systemctl", append([]string{"--user"}, a...)...).CombinedOutput(); err != nil {
+			if out, err := proc.Command("systemctl", append([]string{"--user"}, a...)...).CombinedOutput(); err != nil {
 				fmt.Fprintf(stderr, "mothball: systemctl: %v %s\n", err, out)
 				return 1
 			}
 		}
 	case "windows":
-		tr := fmt.Sprintf(`"%s" service run`, exe)
-		if out, err := exec.Command("schtasks", "/Create", "/F", "/SC", "ONLOGON", "/RL", "LIMITED", "/TN", "Mothball", "/TR", tr).CombinedOutput(); err != nil {
-			fmt.Fprintf(stderr, "mothball: schtasks: %v %s\n", err, out)
+		// Start at login through the user's own Run key: no admin rights
+		// needed, and it shows as Mothball in Task Manager's Startup apps.
+		svc := windowsServiceExe(exe)
+		if out, err := proc.Command("reg", "add", windowsRunKey, "/v", "Mothball", "/t", "REG_SZ", "/d", fmt.Sprintf(`"%s" service run`, svc), "/f").CombinedOutput(); err != nil {
+			fmt.Fprintf(stderr, "mothball: could not add Mothball to startup apps: %v %s\n", err, out)
 			return 1
 		}
-		_ = exec.Command("schtasks", "/Run", "/TN", "Mothball").Run()
+		_ = proc.Command("schtasks", "/Delete", "/F", "/TN", "Mothball").Run() // from older versions
+		if !serviceRunning() {
+			if err := proc.Command(svc, "service", "run").Start(); err != nil {
+				fmt.Fprintln(stderr, "mothball: could not start the service:", err)
+				return 1
+			}
+		}
 	default:
 		fmt.Fprintln(stderr, "mothball: starting at login is not supported on this system")
 		return 1
@@ -301,14 +362,15 @@ func uninstallService(stdout, stderr io.Writer) int {
 	switch runtime.GOOS {
 	case "darwin":
 		plist := filepath.Join(home, "Library", "LaunchAgents", launchdLabel+".plist")
-		_ = exec.Command("launchctl", "bootout", "gui/"+strconv.Itoa(os.Getuid()), plist).Run()
+		_ = proc.Command("launchctl", "bootout", "gui/"+strconv.Itoa(os.Getuid()), plist).Run()
 		_ = os.Remove(plist)
 	case "linux":
-		_ = exec.Command("systemctl", "--user", "disable", "--now", "mothball.service").Run()
+		_ = proc.Command("systemctl", "--user", "disable", "--now", "mothball.service").Run()
 		_ = os.Remove(filepath.Join(home, ".config", "systemd", "user", "mothball.service"))
 	case "windows":
-		_ = exec.Command("schtasks", "/End", "/TN", "Mothball").Run()
-		_ = exec.Command("schtasks", "/Delete", "/F", "/TN", "Mothball").Run()
+		_ = proc.Command("reg", "delete", windowsRunKey, "/v", "Mothball", "/f").Run()
+		_ = proc.Command("schtasks", "/Delete", "/F", "/TN", "Mothball").Run() // from older versions
+		stopRunningService()
 	}
 	fmt.Fprintln(stdout, "Mothball no longer runs in the background.")
 	return 0

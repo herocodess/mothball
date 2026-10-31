@@ -2,6 +2,7 @@ package scan
 
 import (
 	"bytes"
+	"github.com/herocodess/mothball/core/proc"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -34,7 +35,7 @@ func (g *gitRunner) run(dir string, args ...string) (string, bool) {
 	if g.bin == "" {
 		return "", false
 	}
-	cmd := exec.Command(g.bin, append([]string{"-C", dir}, args...)...)
+	cmd := proc.Command(g.bin, append([]string{"-C", dir}, args...)...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {

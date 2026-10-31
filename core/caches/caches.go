@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/herocodess/mothball/core/proc"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -538,7 +539,7 @@ func lookTool(home, name string) (string, error) {
 // runTool runs a cleaning command with the tool's own folder first on PATH,
 // so scripts like npm find their runtime.
 func runTool(ctx context.Context, bin string, args []string) error {
-	cmd := exec.CommandContext(ctx, bin, args...)
+	cmd := proc.CommandContext(ctx, bin, args...)
 	cmd.Env = append(os.Environ(), "PATH="+filepath.Dir(bin)+string(os.PathListSeparator)+os.Getenv("PATH"))
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
@@ -557,19 +558,19 @@ func running(names []string) string {
 	for _, n := range names {
 		var cmd *exec.Cmd
 		if runtime.GOOS == "windows" {
-			cmd = exec.Command("tasklist", "/FI", "IMAGENAME eq "+n+".exe", "/NH")
+			cmd = proc.Command("tasklist", "/FI", "IMAGENAME eq "+n+".exe", "/NH")
 			out, err := cmd.Output()
 			if err == nil && strings.Contains(strings.ToLower(string(out)), strings.ToLower(n)+".exe") {
 				return n
 			}
 			continue
 		}
-		cmd = exec.Command("pgrep", "-x", n)
+		cmd = proc.Command("pgrep", "-x", n)
 		if err := cmd.Run(); err == nil {
 			return n
 		}
 		if n == "GradleDaemon" || n == "GradleWrapperMain" {
-			if exec.Command("pgrep", "-f", n).Run() == nil {
+			if proc.Command("pgrep", "-f", n).Run() == nil {
 				return "Gradle"
 			}
 		}

@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -97,6 +98,8 @@ func newServer(t *testing.T, tag string) *server {
 		assets := []map[string]any{
 			{"name": "Mothball-" + v + ".dmg", "browser_download_url": s.URL + "/dmg", "size": len(s.dmg)},
 			{"name": "checksums-" + v + ".txt", "browser_download_url": s.URL + "/sums"},
+			{"name": WindowsInstaller(v, "amd64"), "browser_download_url": s.URL + "/dmg", "size": len(s.dmg)},
+			{"name": WindowsInstaller(v, "arm64"), "browser_download_url": s.URL + "/dmg", "size": len(s.dmg)},
 		}
 		if s.minimum != "" {
 			assets = append(assets, map[string]any{"name": "update.json", "browser_download_url": s.URL + "/manifest"})
@@ -106,6 +109,8 @@ func newServer(t *testing.T, tag string) *server {
 	mux.HandleFunc("/dmg", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(s.dmg) })
 	mux.HandleFunc("/sums", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s  Mothball-%s.dmg\n", s.sum, v)
+		fmt.Fprintf(w, "%s  %s\n", s.sum, WindowsInstaller(v, "amd64"))
+		fmt.Fprintf(w, "%s  %s\n", s.sum, WindowsInstaller(v, "arm64"))
 	})
 	mux.HandleFunc("/manifest", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `{"minimum":%q,"message":"Fixes a bug that could put away the wrong folder."}`, s.minimum)
@@ -228,5 +233,121 @@ func TestUnsignedAppCannotInstall(t *testing.T) {
 	}
 	if err := u.Download(context.Background()); err != ErrCannotInstall {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+type fakeWin struct {
+	signers  map[string]string // base name -> subject
+	launched []string
+}
+
+func (f *fakeWin) Signer(path string) (string, error) { return f.signers[filepath.Base(path)], nil }
+func (f *fakeWin) Launch(installer string, args []string) error {
+	f.launched = append([]string{installer}, args...)
+	return nil
+}
+
+func newWinUpdater(t *testing.T, srv *server, win *fakeWin, installed bool) *Updater {
+	app := t.TempDir()
+	write := func(name string) {
+		if err := os.WriteFile(filepath.Join(app, name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("Mothball.exe")
+	if installed {
+		write("unins000.exe")
+	}
+	u := &Updater{Current: "0.1.0", Dir: t.TempDir(), App: app, API: srv.URL, HTTP: srv.Client(),
+		Win: win, GOOS: "windows", GOARCH: "arm64", Now: time.Now}
+	u.st = State{Current: u.Current, CanInstall: u.canInstall()}
+	return u
+}
+
+func TestWindowsUpdateRunsTheInstallerSilently(t *testing.T) {
+	srv := newServer(t, "v0.2.0")
+	win := &fakeWin{}
+	u := newWinUpdater(t, srv, win, true)
+	if _, err := u.Check(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := u.Download(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if st := u.State(); st.Phase != Ready {
+		t.Fatalf("state %+v", st)
+	}
+	if err := u.Install(); err != nil {
+		t.Fatal(err)
+	}
+	if len(win.launched) == 0 || filepath.Base(win.launched[0]) != "Mothball-0.2.0-windows-arm64-setup.exe" {
+		t.Fatalf("launched %v", win.launched)
+	}
+	args := strings.Join(win.launched[1:], " ")
+	for _, a := range []string{"/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/RELAUNCH=1"} {
+		if !strings.Contains(args, a) {
+			t.Errorf("installer started without %s: %s", a, args)
+		}
+	}
+}
+
+func TestWindowsPortableCopyDoesNotSelfUpdate(t *testing.T) {
+	srv := newServer(t, "v0.2.0")
+	u := newWinUpdater(t, srv, &fakeWin{}, false)
+	st, _ := u.Check(context.Background())
+	if st.CanInstall || !st.Available {
+		t.Fatalf("state %+v", st)
+	}
+	if err := u.Download(context.Background()); err != ErrCannotInstall {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestWindowsInstallerFromAnotherPublisherIsRejected(t *testing.T) {
+	srv := newServer(t, "v0.2.0")
+	win := &fakeWin{signers: map[string]string{
+		"Mothball.exe":                           "CN=Hero Momoh",
+		"Mothball-0.2.0-windows-arm64-setup.exe": "CN=Someone Else",
+	}}
+	u := newWinUpdater(t, srv, win, true)
+	_, _ = u.Check(context.Background())
+	if err := u.Download(context.Background()); err == nil {
+		t.Fatal("accepted an installer signed by someone else")
+	}
+	if len(win.launched) != 0 {
+		t.Fatal("ran a rejected installer")
+	}
+}
+
+func TestWindowsBadChecksumIsRejected(t *testing.T) {
+	srv := newServer(t, "v0.2.0")
+	srv.sum = strings.Repeat("0", 64)
+	u := newWinUpdater(t, srv, &fakeWin{}, true)
+	_, _ = u.Check(context.Background())
+	if err := u.Download(context.Background()); err == nil {
+		t.Fatal("accepted a download with the wrong checksum")
+	}
+	left, _ := filepath.Glob(filepath.Join(u.Dir, "*.exe"))
+	if len(left) != 0 {
+		t.Fatalf("bad download left on disk: %v", left)
+	}
+}
+
+func TestWindowsAppDir(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := windowsAppDirOf(filepath.Join(dir, "bin", "mothballw.exe")); got != "" {
+		t.Fatalf("found an app folder with no Mothball.exe: %q", got)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "Mothball.exe"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := windowsAppDirOf(filepath.Join(dir, "bin", "mothballw.exe")); got != dir {
+		t.Fatalf("got %q, want %q", got, dir)
+	}
+	if windowsAppDirOf(filepath.Join(dir, "mothball.exe")) != "" {
+		t.Fatal("a CLI outside bin\\ treated as installed")
 	}
 }
