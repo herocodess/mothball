@@ -167,10 +167,13 @@ func openApp() {
 	app := os.Getenv("MOTHBALL_APP")
 	switch runtime.GOOS {
 	case "darwin":
-		if app != "" {
+		switch {
+		case app != "":
 			_ = exec.Command("open", app).Start()
-		} else {
-			_ = exec.Command("open", "-a", "Mothball").Start()
+		case appBundle() != "":
+			_ = exec.Command("open", appBundle()).Start()
+		default:
+			_ = exec.Command("open", "-b", "dev.mothball.mothball").Start()
 		}
 	case "windows":
 		if app == "" {
@@ -184,6 +187,21 @@ func openApp() {
 		}
 		_ = exec.Command(app).Start()
 	}
+}
+
+// appBundle is Mothball.app when this binary runs from inside it, at
+// Mothball.app/Contents/Library/LoginItems/Mothball Agent.app/Contents/MacOS.
+func appBundle() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	exe, _ = filepath.EvalSymlinks(exe)
+	const marker = "/Contents/Library/LoginItems/"
+	if i := strings.Index(exe, marker); i > 0 && strings.HasSuffix(exe[:i], ".app") {
+		return exe[:i]
+	}
+	return ""
 }
 
 const launchdLabel = "dev.mothball.service"

@@ -17,3 +17,4 @@ app/**/ephemeral/
 Thumbs.db
 .idea/
 .vscode/
+/build/
