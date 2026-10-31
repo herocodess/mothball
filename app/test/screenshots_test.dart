@@ -103,9 +103,25 @@ Map<String, dynamic> withUpdate(Map<String, dynamic> j, Map<String, dynamic> u) 
         'phase': '',
         'progress': 0,
         'notesUrl': 'https://github.com/herocodess/mothball/releases/tag/v0.2.0',
+        'publishedAt': '2026-11-14T10:00:00Z',
+        'notes': sampleNotes,
         ...u,
       },
     };
+
+// Sample notes for the preview only.
+const sampleNotes = '''
+## Highlights
+
+- **Windows and Linux app.** The desktop app now runs everywhere the CLI does.
+- **Smarter Autopilot.** Waits until you have been away from your Mac for a while before putting anything away.
+- New rule packs for **Bazel** and **Nx**.
+
+## Fixes
+
+- Scans skip `node_modules` inside git submodules that are still in use.
+- The menu bar shows the right free space on external disks.
+''';
 
 Future<void> loadFonts() async {
   Future<void> load(String family, List<String> files) async {
@@ -134,7 +150,7 @@ Future<void> loadFonts() async {
 }
 
 Future<void> shoot(WidgetTester tester, Widget app, String name,
-    {Size size = const Size(1100, 860), Brightness brightness = Brightness.light}) async {
+    {Size size = const Size(1100, 860), Brightness brightness = Brightness.light, Future<void> Function(WidgetTester)? before}) async {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
@@ -147,6 +163,12 @@ Future<void> shoot(WidgetTester tester, Widget app, String name,
   // Let the staggered entrances, count-ups and bars finish.
   for (var i = 0; i < 30; i++) {
     await tester.pump(const Duration(milliseconds: 100));
+  }
+  if (before != null) {
+    await before(tester);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   }
   await expectLater(find.byType(MaterialApp).first, matchesGoldenFile('screenshots/$name.png'));
   await tester.pumpWidget(const SizedBox());
@@ -184,5 +206,7 @@ void main() {
     testWidgets(name, (t) => shoot(t, MothballApp(api: FakeApi(withUpdate(sample(fullDisk: true, onboarded: true), u))), name,
         size: const Size(1100, 760), brightness: dark ? Brightness.dark : Brightness.light));
   }
+  testWidgets('12-whats-new', (t) => shoot(t, MothballApp(api: FakeApi(withUpdate(sample(fullDisk: true, onboarded: true), {}))), '12-whats-new',
+      size: const Size(1100, 860), before: (t) => t.tap(find.text("What's new"))));
   testWidgets('not running', (t) => shoot(t, MothballApp(api: MothballApi(dir: '/nonexistent')), '5-not-running', size: const Size(1100, 760)));
 }

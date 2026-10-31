@@ -101,7 +101,7 @@ func newServer(t *testing.T, tag string) *server {
 		if s.minimum != "" {
 			assets = append(assets, map[string]any{"name": "update.json", "browser_download_url": s.URL + "/manifest"})
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": tag, "html_url": "https://example.com/" + tag, "assets": assets})
+		_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": tag, "html_url": "https://example.com/" + tag, "body": "## What's new\n- Faster scans", "published_at": "2026-11-02T10:00:00Z", "assets": assets})
 	})
 	mux.HandleFunc("/dmg", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(s.dmg) })
 	mux.HandleFunc("/sums", func(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +135,7 @@ func TestCheckFindsNewerRelease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !st.Available || st.Latest != "0.2.0" || st.Required || !st.CanInstall {
+	if !st.Available || st.Latest != "0.2.0" || st.Required || !st.CanInstall || st.Notes == "" || st.PublishedAt.IsZero() {
 		t.Fatalf("state %+v", st)
 	}
 }

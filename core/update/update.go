@@ -44,13 +44,16 @@ const (
 
 // State is what the app and menu bar show.
 type State struct {
-	Current   string    `json:"current"`
-	Latest    string    `json:"latest,omitempty"`
-	Available bool      `json:"available"`
+	Current   string `json:"current"`
+	Latest    string `json:"latest,omitempty"`
+	Available bool   `json:"available"`
 	// Required means this version must update before Mothball moves files.
 	Required bool   `json:"required"`
 	Message  string `json:"message,omitempty"`
 	NotesURL string `json:"notesUrl,omitempty"`
+	// Notes are the release notes (Markdown) of the latest version.
+	Notes       string    `json:"notes,omitempty"`
+	PublishedAt time.Time `json:"publishedAt,omitzero"`
 	// CanInstall is true when Mothball can install the update itself (the
 	// macOS app in a folder it can write to). Otherwise the app links to the
 	// download page.
@@ -63,11 +66,13 @@ type State struct {
 
 // Release is the part of GitHub's release JSON that Mothball reads.
 type Release struct {
-	Tag     string `json:"tag_name"`
-	HTMLURL string `json:"html_url"`
-	Draft   bool   `json:"draft"`
-	Pre     bool   `json:"prerelease"`
-	Assets  []struct {
+	Tag       string    `json:"tag_name"`
+	HTMLURL   string    `json:"html_url"`
+	Body      string    `json:"body"`
+	Published time.Time `json:"published_at"`
+	Draft     bool      `json:"draft"`
+	Pre       bool      `json:"prerelease"`
+	Assets    []struct {
 		Name string `json:"name"`
 		URL  string `json:"browser_download_url"`
 		Size int64  `json:"size"`
@@ -166,6 +171,11 @@ func (u *Updater) Check(ctx context.Context) (State, error) {
 	u.release = rel
 	u.st.Latest = latest
 	u.st.NotesURL = rel.HTMLURL
+	u.st.Notes = rel.Body
+	if len(u.st.Notes) > 20000 {
+		u.st.Notes = u.st.Notes[:20000]
+	}
+	u.st.PublishedAt = rel.Published
 	u.st.CheckedAt = u.Now()
 	u.st.Error = ""
 	u.st.Available = Newer(latest, u.Current)

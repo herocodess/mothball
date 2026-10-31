@@ -269,6 +269,8 @@ class UpdateInfo {
     required this.phase,
     required this.progress,
     required this.error,
+    this.notes = '',
+    this.publishedAt,
   });
 
   factory UpdateInfo.fromJson(Map<String, dynamic> j) => UpdateInfo(
@@ -282,6 +284,8 @@ class UpdateInfo {
         phase: _str(j['phase']),
         progress: j['progress'] is num ? (j['progress'] as num).toDouble() : 0,
         error: _str(j['error']),
+        notes: _str(j['notes']),
+        publishedAt: _time(j['publishedAt']),
       );
 
   final String current;
@@ -294,6 +298,8 @@ class UpdateInfo {
   final String phase; // '', checking, downloading, ready, installing
   final double progress;
   final String error;
+  final String notes; // Markdown from the GitHub release
+  final DateTime? publishedAt;
 
   bool get downloading => phase == 'downloading';
   bool get ready => phase == 'ready';

@@ -222,6 +222,10 @@ class _HomeScreenState extends State<HomeScreen> {
     await _refresh();
   }
 
+  void _whatsNew(UpdateInfo u) {
+    showWhatsNew(context, u, onUpdate: () => _update(u), onGitHub: () => MothballApi.openUrl(u.notesUrl));
+  }
+
   Future<void> _saveConfig(MothballConfig c) async {
     await _run('Saving', () => widget.api.saveConfig(c));
     await _refresh();
@@ -247,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
         key: const ValueKey('update-required'),
         update: st.update!,
         onUpdate: () => _update(st.update!),
-        onNotes: () => MothballApi.openUrl(st.update!.notesUrl),
+        onNotes: () => _whatsNew(st.update!),
       );
     } else if (Platform.isMacOS && !st.access.fullDisk && !st.config.onboarded) {
       body = AccessOnboarding(
@@ -300,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ? UpdateBanner(
                   update: st!.update!,
                   onUpdate: () => _update(st.update!),
-                  onNotes: () => MothballApi.openUrl(st.update!.notesUrl),
+                  onNotes: () => _whatsNew(st.update!),
                   onLater: () => setState(() => _laterFor = st.update!.latest),
                 )
               : const SizedBox(width: double.infinity),
