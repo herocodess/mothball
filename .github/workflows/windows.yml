@@ -175,26 +175,23 @@ jobs:
       - name: Uninstall leaves nothing behind
         run: |
           $dir = "$env:LOCALAPPDATA\Programs\Mothball"
-          "PATH before: " + (Get-ItemProperty 'HKCU:\Environment').Path
           $u = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$env:RUNNER_TEMP\uninstall.log" -PassThru
           $u.WaitForExit()
-          # The uninstaller hands over to a copy of itself in %TEMP% (_iu*.tmp);
-          # wait until that copy has finished its last step too.
-          foreach ($i in 1..90) {
-            $busy = Get-Process | Where-Object { $_.ProcessName -like '_iu*' -or $_.ProcessName -like 'unins000*' }
-            if (-not $busy -and -not (Test-Path "$dir\Mothball.exe")) { break }
-            Start-Sleep 1
+          # The uninstaller hands over to a copy of itself in %TEMP% and
+          # finishes in the background, so each check gets up to 60 seconds.
+          function Eventually([scriptblock]$ok, $what) {
+            foreach ($i in 1..60) { if (& $ok) { "ok    $what"; return }; Start-Sleep 1 }
+            Get-Content "$env:RUNNER_TEMP\uninstall.log" -ErrorAction SilentlyContinue | Select-Object -Last 20
+            throw "FAIL  $what"
           }
-          "PATH after:  " + (Get-ItemProperty 'HKCU:\Environment').Path
-          Get-Content "$env:RUNNER_TEMP\uninstall.log" -ErrorAction SilentlyContinue | Select-Object -Last 25
-          function Need($ok, $what) { if ($ok) { "ok    $what" } else { throw "FAIL  $what" } }
-          Need (-not (Test-Path "$dir\Mothball.exe")) 'app removed'
-          Need (-not (Test-Path "$dir\bin")) 'bin removed'
-          Need (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Mothball.lnk")) 'Start menu shortcut removed'
-          Need (-not (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).Mothball) 'removed from startup apps'
-          Need (-not ((Get-ItemProperty 'HKCU:\Environment').Path -split ';' -contains "$dir\bin")) 'removed from PATH'
-          Need (-not (Get-Process mothballw, Mothball -ErrorAction SilentlyContinue)) 'nothing still running'
-          Need (-not (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B3883D3F-7C21-4105-A537-172930CAB764}_is1')) 'removed from Apps'
+          Eventually { -not (Test-Path "$dir\Mothball.exe") } 'app removed'
+          Eventually { -not (Test-Path "$dir\bin") } 'bin removed'
+          Eventually { -not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Mothball.lnk") } 'Start menu shortcut removed'
+          Eventually { -not (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).Mothball } 'removed from startup apps'
+          Eventually { -not ((Get-ItemProperty 'HKCU:\Environment').Path -split ';' -contains "$dir\bin") } 'removed from PATH'
+          Eventually { -not (Get-Process mothballw, Mothball -ErrorAction SilentlyContinue) } 'nothing still running'
+          Eventually { -not (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B3883D3F-7C21-4105-A537-172930CAB764}_is1') } 'removed from Apps'
+          Eventually { -not (Test-Path $dir) } 'install folder gone'
 
       - uses: actions/upload-artifact@v4
         if: always()
