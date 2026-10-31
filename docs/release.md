@@ -26,8 +26,13 @@ macOS names whichever program asks for access. During development that is your t
 
 ## Windows
 
-- [ ] Tray icon owned by the background service
-- [ ] Signed installer; winget and Scoop manifests
+- [x] Tray icon owned by the background service, readable on light and dark taskbars
+- [x] Installer for x64 and Arm64 (Inno Setup): per user, no admin prompt, PATH, startup app, clean upgrade and uninstall
+- [x] No console windows: the service runs as `mothballw.exe`, and the programs it starts are hidden
+- [x] Self-update: download the installer for this architecture, check its checksum, run it silently
+- [x] CI installs, opens, updates and uninstalls on Windows x64 and Arm64 for every change
+- [ ] Code signing (SignPath Foundation, free for open source), so SmartScreen stops warning
+- [ ] winget and Scoop manifests
 - [ ] Auto-empty for the Recycle Bin (off until Mothball can find its own items there safely)
 
 ## Linux
@@ -47,7 +52,7 @@ macOS names whichever program asks for access. During development that is your t
 
 1. Bump `version:` in `app/pubspec.yaml`.
 2. On the Mac: `SIGN_ID="Developer ID Application: ..." scripts/build-mac.sh --dmg`.
-3. Build the Windows and Linux CLIs (`GOOS`/`GOARCH` for windows and linux, amd64 and arm64, `-X main.version=...`).
+3. Build the Linux CLIs (`GOOS=linux`, amd64 and arm64, `-X main.version=...`). The Windows installers, zips and CLIs are built by the `windows` workflow when the tag is pushed, and attached to the release with their checksums.
 4. Write `checksums-<version>.txt` covering every file (`shasum -a 256`). The in-app updater refuses a DMG that is not listed in it.
 5. Tag `v<version>`, then `gh release create v<version>` with the DMG, the CLIs and the checksums file.
 6. Update the cask and formula in `herocodess/homebrew-tap` (version and sha256). From 0.1.1 on, the cask carries `auto_updates true`, since the app updates itself.

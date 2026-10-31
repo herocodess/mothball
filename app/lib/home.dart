@@ -733,8 +733,8 @@ class _IdlePanel extends StatelessWidget {
           subtitle: s == null
               ? 'Not scanned yet'
               : s.idle.isEmpty
-                  ? 'Nothing untouched for $idleDays+ days. ${s.projects} projects checked.'
-                  : 'Untouched for $idleDays+ days · ${humanBytes(s.idleBytes)} of build output in ${s.idle.length} folders',
+                  ? 'Nothing untouched for $idleDays+ days. ${plural(s.projects, 'project')} checked.'
+                  : 'Untouched for $idleDays+ days · ${humanBytes(s.idleBytes)} of build output in ${plural(s.idle.length, 'folder')}',
           trailing: TextButton.icon(
             onPressed: scanning ? null : onScan,
             icon: Spin(spinning: scanning, child: const Icon(Icons.refresh_rounded, size: 18)),
@@ -1030,7 +1030,7 @@ class _MothballedPanel extends StatelessWidget {
     return Panel(
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _SectionHeader(title: 'Mothballed', subtitle: '${projects.length} projects resting · ${humanBytes(total)} put away'),
+        _SectionHeader(title: 'Mothballed', subtitle: '${plural(projects.length, 'project')} resting · ${humanBytes(total)} put away'),
         const SizedBox(height: 14),
         for (final p in projects) _MothballedRow(p: p, onWake: () => onWake(p)),
       ]),

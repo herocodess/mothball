@@ -51,7 +51,7 @@ Caches are cleaned through each tool's own command where there is one (`npm cach
 
 ## Install
 
-**macOS app** (Apple silicon and Intel, macOS 11 or later). Download [Mothball-0.1.0.dmg](https://github.com/herocodess/mothball/releases/latest), open it and drag Mothball to Applications. It is signed and notarised, and includes the `mothball` command.
+**macOS** (Apple silicon and Intel, macOS 11 or later). Download `Mothball-<version>.dmg` from the [latest release](https://github.com/herocodess/mothball/releases/latest), open it and drag Mothball to Applications. It is signed and notarised, includes the `mothball` command, and updates itself.
 
 Or with Homebrew:
 
@@ -61,14 +61,23 @@ brew trust herocodess/tap
 brew install --cask mothball
 ```
 
-**Command line only** (macOS, Linux, Windows):
+**Windows** (10 and 11, x64 and Arm). Download the installer for your PC from the [latest release](https://github.com/herocodess/mothball/releases/latest):
+
+- `Mothball-<version>-windows-x64-setup.exe` for Intel and AMD PCs
+- `Mothball-<version>-windows-arm64-setup.exe` for Arm PCs (Snapdragon, Surface Pro with an Arm chip)
+
+It installs for your account only, with no admin prompt, adds `mothball` to your PATH, runs in the background from your startup apps, and updates itself. Not sure which one you need? Settings > System > About > System type.
+
+The installer is not code signed yet, so Windows SmartScreen may say it "protected your PC". Choose **More info**, then **Run anyway**. Each release lists SHA-256 checksums so you can check the download.
+
+**Linux and the command line only:**
 
 ```sh
 brew install herocodess/tap/mothball                      # macOS and Linux
 go install github.com/herocodess/mothball/cli/mothball@latest
 ```
 
-or download the binary for your system from the [latest release](https://github.com/herocodess/mothball/releases/latest). The Windows and Linux desktop apps come next.
+or download the binary for your system from the [latest release](https://github.com/herocodess/mothball/releases/latest). The Linux desktop app comes next.
 
 ## Repository layout
 
@@ -78,6 +87,7 @@ or download the binary for your system from the [latest release](https://github.
 | `cli/` | The `mothball` command, a thin layer over `core` |
 | `rules/` | Rule packs, one JSON file per stack |
 | `app/` | The Flutter desktop app for macOS, Windows and Linux (see [app/README.md](app/README.md)) |
+| `installer/` | The Windows installer (Inno Setup) |
 | `assets/` | Logo, icons and the menu bar glyph |
 | `docs/` | Rule pack format and design notes |
 

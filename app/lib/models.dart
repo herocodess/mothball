@@ -1,6 +1,9 @@
 // Data shapes returned by the Mothball service. They mirror the Go structs in
 // core/service, core/scan, core/wake and core/config.
 
+/// "1 project", "3 projects".
+String plural(int n, String word) => '$n ${n == 1 ? word : '${word}s'}';
+
 List<dynamic> _list(Object? v) => v is List ? v : const [];
 int _int(Object? v) => v is num ? v.toInt() : 0;
 bool _bool(Object? v) => v == true;
