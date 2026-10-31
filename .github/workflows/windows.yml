@@ -247,9 +247,13 @@ jobs:
       - name: Upload and update checksums
         run: |
           V="${TAG#v}"
-          cd dl
+          # Artifacts keep their build folders; gather the release files flat.
+          mkdir out
+          find dl -type f \( -name "Mothball-$V-windows-*-setup.exe" -o -name "Mothball-$V-windows-*.zip" -o -name "mothball-$V-windows-*.exe" \) -exec cp {} out/ \;
+          cd out
           ls -la
           files=$(ls Mothball-$V-windows-*-setup.exe Mothball-$V-windows-*.zip mothball-$V-windows-*.exe)
+          [ "$(echo "$files" | wc -l)" -eq 6 ] || { echo "expected 6 Windows files"; exit 1; }
           gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p "checksums-$V.txt" -O sums.txt || touch sums.txt
           for f in $files; do
             grep -v "  $f\$" sums.txt > sums.new || true
