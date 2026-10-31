@@ -63,8 +63,10 @@ service)
     sleep 1
   done
   ok "background service is running"
-  n=$(pgrep -fc ' service run' || true)
-  [ "$n" -eq 1 ] && ok "exactly one service" || fail "$n service processes"
+  # Count by program name: an AppImage keeps a small launcher process alive
+  # above the real one, and both have "service run" on their command line.
+  n=$(pgrep -xc mothball || true)
+  [ "$n" -eq 1 ] && ok "exactly one service" || { pgrep -a mothball; fail "$n service processes"; }
   ;;
 
 removed)
