@@ -91,7 +91,13 @@ for f in "$APP"/Contents/Frameworks/*.framework "$APP"/Contents/Frameworks/*.dyl
   [ -e "$f" ] && codesign --force $OPTS $TS --sign "$SIGN" "$f"
 done
 codesign --force $OPTS $TS --sign "$SIGN" "$AGENT"
-codesign --force $OPTS $TS --sign "$SIGN" --preserve-metadata=identifier,entitlements,requirements,flags "$APP"
+if [ "$DMG" = 1 ]; then
+  # Release entitlements only: Xcode's local signing adds get-task-allow
+  # (debugging), which notarisation rejects.
+  codesign --force $OPTS $TS --sign "$SIGN" --entitlements "$ROOT/app/macos/Runner/Release.entitlements" "$APP"
+else
+  codesign --force $OPTS $TS --sign "$SIGN" --preserve-metadata=identifier,entitlements,requirements,flags "$APP"
+fi
 codesign --verify --deep --strict "$APP"
 
 if [ "$DMG" = 1 ]; then
