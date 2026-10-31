@@ -61,7 +61,7 @@ class AccessOnboarding extends StatelessWidget {
             const _Step(n: 3, text: 'Turn it on, then come back and check again.'),
             const SizedBox(height: 24),
             Wrap(spacing: 12, runSpacing: 12, children: [
-              FilledButton(onPressed: openFullDiskSettings, child: const Text('Open System Settings')),
+              const FilledButton(onPressed: openFullDiskSettings, child: Text('Open System Settings')),
               if (access.executable.isNotEmpty)
                 OutlinedButton(onPressed: () => revealInFinder(access.executable), child: const Text('Show Mothball in Finder')),
               OutlinedButton(onPressed: onCheck, child: const Text('Check again')),
@@ -120,7 +120,7 @@ class AccessReminder extends StatelessWidget {
           Expanded(
             child: Text('${_folderNames(access.skipped)} are not being scanned. Give Mothball Full Disk Access to include them.'),
           ),
-          TextButton(onPressed: openFullDiskSettings, child: const Text('Open Settings')),
+          const TextButton(onPressed: openFullDiskSettings, child: Text('Open Settings')),
           TextButton(onPressed: onCheck, child: const Text('Check again')),
         ]),
       ),
