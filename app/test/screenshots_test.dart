@@ -11,7 +11,6 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mothball/api.dart';
@@ -117,6 +116,8 @@ Future<void> shoot(WidgetTester tester, Widget app, String name,
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+  // Tests draw shadows as solid blocks by default; draw them as the app does.
+  debugDisableShadows = false;
   await tester.pumpWidget(app);
   await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
   // Let the staggered entrances, count-ups and bars finish.
@@ -125,13 +126,11 @@ Future<void> shoot(WidgetTester tester, Widget app, String name,
   }
   await expectLater(find.byType(MaterialApp).first, matchesGoldenFile('screenshots/$name.png'));
   await tester.pumpWidget(const SizedBox());
+  debugDisableShadows = true;
 }
 
 void main() {
   setUpAll(loadFonts);
-  // Tests draw shadows as solid blocks by default; draw them as the app does.
-  setUp(() => debugDisableShadows = false);
-  tearDown(() => debugDisableShadows = true);
 
   testWidgets('onboarding', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: false))), '1-onboarding'));
   testWidgets('home, access missing', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: true))), '2-home-reminder', size: const Size(1100, 1560)));
