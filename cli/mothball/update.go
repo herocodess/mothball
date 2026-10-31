@@ -39,6 +39,10 @@ func cmdUpdate(stdout, stderr io.Writer) int {
 	case st.CanInstall:
 		fmt.Fprintln(stdout, "Open Mothball and click Update, or download it from:")
 		fmt.Fprintln(stdout, " ", st.NotesURL)
+	case strings.HasPrefix(exe, "/opt/mothball/"):
+		arch := runtime.GOARCH
+		fmt.Fprintf(stdout, "Download the new package from:\n  %s\nthen install it, for example:\n  sudo apt install ./mothball_%s-1_%s.deb    (Debian, Ubuntu)\n  sudo dnf install ./mothball-%s-1.%s.rpm   (Fedora)\n",
+			st.NotesURL, st.Latest, arch, st.Latest, map[string]string{"amd64": "x86_64", "arm64": "aarch64"}[arch])
 	case strings.Contains(strings.ToLower(exe), `\scoop\`):
 		fmt.Fprintln(stdout, "Update with:\n  scoop update mothball")
 	case strings.Contains(exe, "/Cellar/") || strings.Contains(exe, "/Caskroom/"):

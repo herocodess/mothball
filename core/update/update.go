@@ -128,6 +128,8 @@ func New(current, dir string) *Updater {
 		u.App = AppBundle()
 	case "windows":
 		u.App = WindowsAppDir()
+	case "linux":
+		u.App = LinuxAppImagePath()
 	}
 	u.st = State{Current: current, CanInstall: u.canInstall()}
 	u.cleanLeftovers()
@@ -263,8 +265,11 @@ func (u *Updater) Download(ctx context.Context) error {
 }
 
 func (u *Updater) download(ctx context.Context, rel Release, version string) (string, error) {
-	if u.GOOS == "windows" {
+	switch u.GOOS {
+	case "windows":
 		return u.downloadWindows(ctx, rel, version)
+	case "linux":
+		return u.downloadAppImage(ctx, rel, version)
 	}
 	name := "Mothball-" + version + ".dmg"
 	url, size, ok := rel.asset(name)
@@ -444,8 +449,11 @@ func (u *Updater) Install() error {
 }
 
 func (u *Updater) swap(staged string) error {
-	if u.GOOS == "windows" {
+	switch u.GOOS {
+	case "windows":
 		return u.runInstaller(staged)
+	case "linux":
+		return u.swapAppImage(staged)
 	}
 	if err := u.verify(staged); err != nil { // again: it sat on disk meanwhile
 		return err
@@ -468,8 +476,15 @@ func (u *Updater) cleanLeftovers() {
 	if u.App == "" {
 		return
 	}
-	if u.GOOS == "windows" {
+	switch u.GOOS {
+	case "windows":
 		old, _ := filepath.Glob(filepath.Join(u.Dir, "Mothball-*-setup.exe"))
+		for _, m := range old {
+			_ = os.Remove(m)
+		}
+		return
+	case "linux":
+		old, _ := filepath.Glob(filepath.Join(filepath.Dir(u.App), ".Mothball-*.AppImage.part"))
 		for _, m := range old {
 			_ = os.Remove(m)
 		}
@@ -485,11 +500,14 @@ func (u *Updater) canInstall() bool {
 	if u.App == "" {
 		return false
 	}
-	if u.GOOS == "windows" {
+	switch u.GOOS {
+	case "windows":
 		// Installed with the installer (not a portable or Scoop copy), which
 		// is what an update runs.
 		_, err := os.Stat(filepath.Join(u.App, "unins000.exe"))
 		return err == nil
+	case "linux":
+		return linuxCanInstall(u.App)
 	}
 	dir := filepath.Dir(u.App)
 	if strings.HasPrefix(dir, "/Volumes/") || strings.Contains(u.App, "/AppTranslocation/") {

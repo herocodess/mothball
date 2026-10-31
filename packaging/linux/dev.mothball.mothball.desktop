@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Mothball
+GenericName=Disk Space Cleaner
+Comment=Put idle projects away, get your disk back
+Exec=/opt/mothball/mothball-app
+Icon=dev.mothball.mothball
+Terminal=false
+Categories=Development;Utility;
+Keywords=disk;space;cleanup;clean;node_modules;build;cache;developer;
+StartupWMClass=dev.mothball.mothball
+StartupNotify=true

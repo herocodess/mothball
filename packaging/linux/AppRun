@@ -1,0 +1,9 @@
+#!/bin/sh
+# Mothball AppImage entry point. With a command (scan, clean, service, ...) it
+# runs the command line tool; with nothing, it opens the app.
+HERE="$(dirname "$(readlink -f "$0")")"
+case "$1" in
+  scan|clean|caches|wake|empty|status|service|update|version|help|-h|--help|-v|--version)
+    exec "$HERE/opt/mothball/bin/mothball" "$@" ;;
+esac
+exec "$HERE/opt/mothball/mothball-app" "$@"

@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -100,6 +101,8 @@ func newServer(t *testing.T, tag string) *server {
 			{"name": "checksums-" + v + ".txt", "browser_download_url": s.URL + "/sums"},
 			{"name": WindowsInstaller(v, "amd64"), "browser_download_url": s.URL + "/dmg", "size": len(s.dmg)},
 			{"name": WindowsInstaller(v, "arm64"), "browser_download_url": s.URL + "/dmg", "size": len(s.dmg)},
+			{"name": LinuxAppImage(v, "amd64"), "browser_download_url": s.URL + "/dmg", "size": len(s.dmg)},
+			{"name": LinuxAppImage(v, "arm64"), "browser_download_url": s.URL + "/dmg", "size": len(s.dmg)},
 		}
 		if s.minimum != "" {
 			assets = append(assets, map[string]any{"name": "update.json", "browser_download_url": s.URL + "/manifest"})
@@ -111,6 +114,8 @@ func newServer(t *testing.T, tag string) *server {
 		fmt.Fprintf(w, "%s  Mothball-%s.dmg\n", s.sum, v)
 		fmt.Fprintf(w, "%s  %s\n", s.sum, WindowsInstaller(v, "amd64"))
 		fmt.Fprintf(w, "%s  %s\n", s.sum, WindowsInstaller(v, "arm64"))
+		fmt.Fprintf(w, "%s  %s\n", s.sum, LinuxAppImage(v, "amd64"))
+		fmt.Fprintf(w, "%s  %s\n", s.sum, LinuxAppImage(v, "arm64"))
 	})
 	mux.HandleFunc("/manifest", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `{"minimum":%q,"message":"Fixes a bug that could put away the wrong folder."}`, s.minimum)
@@ -349,5 +354,87 @@ func TestWindowsAppDir(t *testing.T) {
 	}
 	if windowsAppDirOf(filepath.Join(dir, "mothball.exe")) != "" {
 		t.Fatal("a CLI outside bin\\ treated as installed")
+	}
+}
+
+func newLinuxUpdater(t *testing.T, srv *server) *Updater {
+	app := filepath.Join(t.TempDir(), "Mothball.AppImage")
+	if err := os.WriteFile(app, []byte("old appimage"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	u := &Updater{Current: "0.1.0", Dir: t.TempDir(), App: app, API: srv.URL, HTTP: srv.Client(),
+		GOOS: "linux", GOARCH: "amd64", Now: time.Now}
+	u.st = State{Current: u.Current, CanInstall: u.canInstall()}
+	return u
+}
+
+func TestAppImageUpdateReplacesTheFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("AppImages are Linux only; Windows has no executable bit")
+	}
+	srv := newServer(t, "v0.2.0")
+	u := newLinuxUpdater(t, srv)
+	st, err := u.Check(context.Background())
+	if err != nil || !st.CanInstall || !st.Available {
+		t.Fatalf("state %+v, %v", st, err)
+	}
+	if err := u.Download(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if u.State().Phase != Ready {
+		t.Fatalf("state %+v", u.State())
+	}
+	if err := u.Install(); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(u.App)
+	if string(b) != string(srv.dmg) {
+		t.Fatalf("AppImage not replaced, has %q", b)
+	}
+	if info, _ := os.Stat(u.App); info.Mode()&0o111 == 0 {
+		t.Fatal("new AppImage is not executable")
+	}
+	left, _ := filepath.Glob(filepath.Join(filepath.Dir(u.App), ".Mothball-*"))
+	if len(left) != 0 {
+		t.Fatalf("leftovers %v", left)
+	}
+}
+
+func TestAppImageBadChecksumKeepsTheOldFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("AppImages are Linux only; Windows has no executable bit")
+	}
+	srv := newServer(t, "v0.2.0")
+	srv.sum = strings.Repeat("0", 64)
+	u := newLinuxUpdater(t, srv)
+	_, _ = u.Check(context.Background())
+	if err := u.Download(context.Background()); err == nil {
+		t.Fatal("accepted a download with the wrong checksum")
+	}
+	b, _ := os.ReadFile(u.App)
+	if string(b) != "old appimage" {
+		t.Fatal("running AppImage was touched")
+	}
+	left, _ := filepath.Glob(filepath.Join(filepath.Dir(u.App), ".Mothball-*"))
+	if len(left) != 0 {
+		t.Fatalf("bad download left on disk: %v", left)
+	}
+}
+
+func TestLinuxPackageDoesNotSelfUpdate(t *testing.T) {
+	srv := newServer(t, "v0.2.0")
+	u := &Updater{Current: "0.1.0", Dir: t.TempDir(), App: "", API: srv.URL, HTTP: srv.Client(),
+		GOOS: "linux", GOARCH: "amd64", Now: time.Now}
+	u.st = State{Current: u.Current, CanInstall: u.canInstall()}
+	st, _ := u.Check(context.Background())
+	if st.CanInstall || !st.Available {
+		t.Fatalf("state %+v", st)
+	}
+}
+
+func TestAppImageNames(t *testing.T) {
+	if LinuxAppImage("0.1.3", "amd64") != "Mothball-0.1.3-linux-x86_64.AppImage" ||
+		LinuxAppImage("0.1.3", "arm64") != "Mothball-0.1.3-linux-aarch64.AppImage" {
+		t.Fatal("unexpected AppImage names")
 	}
 }

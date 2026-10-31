@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _poll;
   Timer? _fastPoll; // quicker refresh while an update downloads
   String? _laterFor; // version whose banner the user put off this session
+  bool _triedStart = false; // started the bundled service once this launch
 
   @override
   void initState() {
@@ -72,6 +73,16 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } on ServiceUnavailable catch (e) {
+      // First launch, or the service was quit: start the copy that ships
+      // with the app once, quietly, before showing the "not running" screen.
+      if (!_triedStart && MothballApi.bundledService() != null) {
+        _triedStart = true;
+        final err = await MothballApi.installService();
+        if (err == null) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          return _refresh(scanIfNeeded: scanIfNeeded);
+        }
+      }
       if (mounted) setState(() => _offline = e.reason);
     } catch (e) {
       _toast('$e');
