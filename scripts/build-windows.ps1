@@ -54,7 +54,10 @@ Copy-Item -Recurse "$Built\*" "$Stage\app"
 
 # 3. Microsoft's C++ runtime, which Flutter apps need and a fresh Windows may
 #    not have. Taken from this machine, so it matches the architecture.
-foreach ($dll in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+# vcruntime140_1.dll exists only for x64; Arm64 does not use it.
+$Runtime = @('msvcp140.dll', 'vcruntime140.dll')
+if ($Arch -eq 'x64') { $Runtime += 'vcruntime140_1.dll' }
+foreach ($dll in $Runtime) {
   $src = Join-Path $env:WINDIR "System32\$dll"
   if (-not (Test-Path $src)) { throw "$dll not found in System32" }
   Copy-Item $src "$Stage\app\"

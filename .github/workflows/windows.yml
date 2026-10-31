@@ -68,7 +68,8 @@ jobs:
           }
           $stage = "build\windows-release\stage-${{ matrix.arch }}"
           $files = @("$stage\app\Mothball.exe", "$stage\app\flutter_windows.dll", "$stage\app\vcruntime140.dll",
-                     "$stage\app\msvcp140.dll", "$stage\app\vcruntime140_1.dll", "$stage\bin\mothball.exe", "$stage\bin\mothballw.exe")
+                     "$stage\app\msvcp140.dll", "$stage\bin\mothball.exe", "$stage\bin\mothballw.exe")
+          if ('${{ matrix.arch }}' -eq 'x64') { $files += "$stage\app\vcruntime140_1.dll" }
           $bad = 0
           foreach ($f in $files) {
             $m = Machine $f
@@ -176,8 +177,13 @@ jobs:
           $dir = "$env:LOCALAPPDATA\Programs\Mothball"
           $u = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
           $u.WaitForExit()
-          # The uninstaller hands over to a copy of itself; wait for it to finish.
-          foreach ($i in 1..60) { if (-not (Test-Path "$dir\Mothball.exe")) { break }; Start-Sleep 1 }
+          # The uninstaller hands over to a copy of itself in %TEMP% (_iu*.tmp);
+          # wait until that copy has finished its last step too.
+          foreach ($i in 1..90) {
+            $busy = Get-Process | Where-Object { $_.ProcessName -like '_iu*' -or $_.ProcessName -like 'unins000*' }
+            if (-not $busy -and -not (Test-Path "$dir\Mothball.exe")) { break }
+            Start-Sleep 1
+          }
           function Need($ok, $what) { if ($ok) { "ok    $what" } else { throw "FAIL  $what" } }
           Need (-not (Test-Path "$dir\Mothball.exe")) 'app removed'
           Need (-not (Test-Path "$dir\bin")) 'bin removed'
