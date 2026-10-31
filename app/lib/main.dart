@@ -34,6 +34,9 @@ class MothballApp extends StatelessWidget {
 
   final MothballApi api;
 
+  /// The app theme, shared with tests and previews.
+  static ThemeData theme(Brightness b) => _theme(b);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
