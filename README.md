@@ -86,6 +86,17 @@ go install github.com/herocodess/mothball/cli/mothball@latest
 
 or download the binary for your system from the [latest release](https://github.com/herocodess/mothball/releases/latest). The Linux desktop app comes next.
 
+## Code signing
+
+- **macOS:** signed with an Apple Developer ID (Herodion Momoh, 4N7797Q7D2) and notarised by Apple.
+- **Windows:** free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org) (application in progress; until then the installer is unsigned and every file is listed with its SHA-256 checksum in the release).
+
+Code signing policy: release builds are made only by this repository's GitHub Actions workflows from tagged commits on `main`, which is protected and needs passing checks and a maintainer review. Committers, reviewers and release approvers: [Hero Momoh](https://github.com/herocodess).
+
+## Privacy
+
+Mothball runs on your computer and collects nothing. It does not send any information about you, your files or your projects anywhere. The only network request it makes on its own is a daily check of this repository's latest release on GitHub, which you can turn off in Settings. Commands it runs for you (such as `npm install` when you wake a project) talk to their own servers as they normally would.
+
 ## Repository layout
 
 | Folder | What lives there |
