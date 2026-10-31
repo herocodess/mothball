@@ -170,7 +170,7 @@ jobs:
       - name: Tools
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q xvfb imagemagick dbus-x11 fuse3 libgtk-3-0t64
+          sudo apt-get install -y -q xvfb imagemagick dbus-x11 fuse3 libgtk-3-0t64 libegl1 libgles2
       - name: Runs as an AppImage
         run: |
           mkdir -p ~/Applications
