@@ -92,6 +92,21 @@ Map<String, dynamic> sample({required bool fullDisk, required bool onboarded}) {
   };
 }
 
+Map<String, dynamic> withUpdate(Map<String, dynamic> j, Map<String, dynamic> u) => {
+      ...j,
+      'update': {
+        'current': '0.1.0',
+        'latest': '0.2.0',
+        'available': true,
+        'required': false,
+        'canInstall': true,
+        'phase': '',
+        'progress': 0,
+        'notesUrl': 'https://github.com/herocodess/mothball/releases/tag/v0.2.0',
+        ...u,
+      },
+    };
+
 Future<void> loadFonts() async {
   Future<void> load(String family, List<String> files) async {
     final loader = FontLoader(family);
@@ -159,5 +174,15 @@ void main() {
       size: const Size(1100, 1060),
     );
   });
+  for (final (name, u, dark) in [
+    ('7-update-available', <String, dynamic>{}, false),
+    ('8-update-downloading', <String, dynamic>{'phase': 'downloading', 'progress': 0.62}, false),
+    ('9-update-ready', <String, dynamic>{'phase': 'ready', 'progress': 1}, false),
+    ('10-update-ready-dark', <String, dynamic>{'phase': 'ready', 'progress': 1}, true),
+    ('11-update-required', <String, dynamic>{'required': true, 'message': 'Version 0.1.0 could misread some Gradle projects and put away output that was still in use. 0.2.0 fixes it.'}, false),
+  ]) {
+    testWidgets(name, (t) => shoot(t, MothballApp(api: FakeApi(withUpdate(sample(fullDisk: true, onboarded: true), u))), name,
+        size: const Size(1100, 760), brightness: dark ? Brightness.dark : Brightness.light));
+  }
   testWidgets('not running', (t) => shoot(t, MothballApp(api: MothballApi(dir: '/nonexistent')), '5-not-running', size: const Size(1100, 760)));
 }
