@@ -53,7 +53,7 @@ sed -e "s/@VERSION@/$VERSION/" -e "s/@DATE@/$(date -u +%Y-%m-%d)/" \
 #    file list, so the paths are written into a copy of the config.
 NFPM=${NFPM:-nfpm}
 CONF="$OUT/nfpm.yaml"
-sed -e "s|\${BUNDLE}|$BUNDLE|g" -e "s|\${METAINFO}|$METAINFO|g" packaging/linux/nfpm.yaml > "$CONF"
+sed -e "s|\${BUNDLE}|$BUNDLE|g" -e "s|\${METAINFO}|$METAINFO|g" -e "s| packaging/linux/| $ROOT/packaging/linux/|g" packaging/linux/nfpm.yaml > "$CONF"
 for packager in deb rpm; do
   VERSION=$VERSION ARCH=$GOARCH "$NFPM" package --config "$CONF" --packager $packager --target "$OUT/"
 done
