@@ -10,7 +10,8 @@
 # and Login Items, instead of a bare "mothball" file.
 #
 # Signing: set SIGN_ID to a "Developer ID Application: ..." identity to sign
-# for distribution. Without it the build is signed ad hoc, fine on this Mac.
+# for distribution. Without it, the agent is signed with the same identity
+# Xcode used for the app, so the frameworks inside still load.
 set -e
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
@@ -18,7 +19,6 @@ ROOT=$(pwd)
 MODE=release
 CONFIG=Release
 if [ "$1" = "--debug" ]; then MODE=debug; CONFIG=Debug; fi
-SIGN=${SIGN_ID:--}
 
 echo "Building the service..."
 mkdir -p build
@@ -56,9 +56,13 @@ cat > "$AGENT/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-echo "Signing ($( [ "$SIGN" = "-" ] && echo "ad hoc" || echo "$SIGN" ))..."
-codesign --force --options runtime --timestamp=none --sign "$SIGN" "$AGENT"
-codesign --force --options runtime --timestamp=none --sign "$SIGN" --preserve-metadata=entitlements "$APP"
+SIGN=${SIGN_ID:-$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -1)}
+SIGN=${SIGN:--}
+OPTS=""
+[ "$SIGN" != "-" ] && OPTS="--options runtime"
+echo "Signing with: $( [ "$SIGN" = "-" ] && echo "ad hoc" || echo "$SIGN" )"
+codesign --force $OPTS --timestamp=none --sign "$SIGN" "$AGENT"
+codesign --force $OPTS --timestamp=none --sign "$SIGN" --preserve-metadata=identifier,entitlements,requirements,flags "$APP"
 codesign --verify --deep --strict "$APP"
 
 echo
