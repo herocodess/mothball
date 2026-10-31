@@ -11,6 +11,7 @@ import 'models.dart';
 import 'motion.dart';
 import 'settings.dart';
 import 'theme.dart';
+import 'update.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.api});
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _busy = false;
   String _busyLabel = '';
   Timer? _poll;
+  String? _laterFor; // version whose banner the user put off this session
 
   @override
   void initState() {
@@ -57,6 +59,12 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _status = st;
           _offline = null;
+        });
+      }
+      // Poll faster while an update downloads, so the bar moves smoothly.
+      if (st.update?.downloading ?? false) {
+        Future<void>.delayed(const Duration(milliseconds: 700), () {
+          if (mounted) _refresh();
         });
       }
     } on ServiceUnavailable catch (e) {
@@ -187,9 +195,40 @@ class _HomeScreenState extends State<HomeScreen> {
     await _refresh();
   }
 
+  Future<void> _update(UpdateInfo u) async {
+    if (!u.canInstall) {
+      await MothballApi.openUrl(u.notesUrl);
+      return;
+    }
+    if (u.ready) {
+      try {
+        await widget.api.installUpdate();
+      } catch (e) {
+        _toast('$e');
+        await _refresh();
+        return;
+      }
+      // The service reopens the new app and restarts itself.
+      exit(0);
+    }
+    try {
+      await widget.api.downloadUpdate();
+    } catch (e) {
+      _toast('$e');
+    }
+    await _refresh();
+  }
+
   Future<void> _saveConfig(MothballConfig c) async {
     await _run('Saving', () => widget.api.saveConfig(c));
     await _refresh();
+  }
+
+  bool _showBanner(Status? st) {
+    final u = st?.update;
+    if (u == null || !u.available || u.required || _offline != null) return false;
+    // Once downloading, keep it visible: the user asked for it.
+    return u.downloading || u.ready || u.installing || _laterFor != u.latest;
   }
 
   @override
@@ -200,6 +239,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body = _Offline(key: const ValueKey('offline'), reason: _offline!, onRetry: () => _refresh(scanIfNeeded: true));
     } else if (st == null) {
       body = const Center(key: ValueKey('loading'), child: MothLogo(size: 56, alive: true, busy: true));
+    } else if (st.update != null && st.update!.required) {
+      body = UpdateRequired(
+        key: const ValueKey('update-required'),
+        update: st.update!,
+        onUpdate: () => _update(st.update!),
+        onNotes: () => MothballApi.openUrl(st.update!.notesUrl),
+      );
     } else if (Platform.isMacOS && !st.access.fullDisk && !st.config.onboarded) {
       body = AccessOnboarding(
         key: const ValueKey('onboarding'),
@@ -228,8 +274,33 @@ class _HomeScreenState extends State<HomeScreen> {
               ? null
               : () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => SettingsScreen(config: st.config, onSave: _saveConfig)),
+                    MaterialPageRoute(
+                      builder: (_) => SettingsScreen(
+                        config: st.config,
+                        onSave: _saveConfig,
+                        version: st.update?.current ?? '',
+                        onCheckUpdate: () async {
+                          final u = await widget.api.checkUpdate();
+                          if (u != null && u.available) setState(() => _laterFor = null);
+                          await _refresh();
+                          return u;
+                        },
+                      ),
+                    ),
                   ),
+        ),
+        AnimatedSize(
+          duration: calm(context) ? Duration.zero : const Duration(milliseconds: 380),
+          curve: ease,
+          alignment: Alignment.topCenter,
+          child: _showBanner(st)
+              ? UpdateBanner(
+                  update: st!.update!,
+                  onUpdate: () => _update(st.update!),
+                  onNotes: () => MothballApi.openUrl(st.update!.notesUrl),
+                  onLater: () => setState(() => _laterFor = st.update!.latest),
+                )
+              : const SizedBox(width: double.infinity),
         ),
         Expanded(
           child: Stack(children: [

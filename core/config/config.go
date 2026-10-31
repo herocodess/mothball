@@ -25,6 +25,8 @@ type Config struct {
 	CheckMinutes int `json:"checkMinutes"`
 	// Onboarded is set once the user has seen the first-run screen.
 	Onboarded bool `json:"onboarded"`
+	// SkipUpdateCheck stops the daily check for new versions on GitHub.
+	SkipUpdateCheck bool `json:"skipUpdateCheck"`
 }
 
 // Default is the starting configuration: everything manual until the user

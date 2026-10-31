@@ -63,6 +63,8 @@ func ready(s *service.Service, openApp func()) {
 	idle.Disable()
 	back := systray.AddMenuItem("", "Open Mothball to wake it")
 	back.Hide()
+	upd := systray.AddMenuItem("", "Open Mothball to update")
+	upd.Hide()
 	systray.AddSeparator()
 	open := systray.AddMenuItem("Open Mothball", "")
 	scan := systray.AddMenuItem("Scan now", "Look for build output in idle projects")
@@ -111,6 +113,20 @@ func ready(s *service.Service, openApp func()) {
 			back.Show()
 		}
 
+		switch u := st.Update; {
+		case u == nil || !u.Available:
+			upd.Hide()
+		case u.Required:
+			upd.SetTitle(fmt.Sprintf("Update required: Mothball %s", u.Latest))
+			upd.Show()
+		case u.Phase == "ready":
+			upd.SetTitle(fmt.Sprintf("Restart to update to Mothball %s", u.Latest))
+			upd.Show()
+		default:
+			upd.SetTitle(fmt.Sprintf("Mothball %s is available", u.Latest))
+			upd.Show()
+		}
+
 		if st.Config.Autopilot {
 			auto.Check()
 		} else {
@@ -129,6 +145,8 @@ func ready(s *service.Service, openApp func()) {
 			case <-open.ClickedCh:
 				openApp()
 			case <-back.ClickedCh:
+				openApp()
+			case <-upd.ClickedCh:
 				openApp()
 			case <-scan.ClickedCh:
 				go func() { _, _ = s.Scan(); refresh() }()

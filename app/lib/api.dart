@@ -83,6 +83,34 @@ class MothballApi {
     await _call('POST', '/v1/wake', {'project': project});
   }
 
+  Future<UpdateInfo?> checkUpdate() async {
+    final j = await _call('POST', '/v1/update/check');
+    return j is Map<String, dynamic> && j.isNotEmpty ? UpdateInfo.fromJson(j) : null;
+  }
+
+  /// Starts the download; progress shows up in [status].
+  Future<void> downloadUpdate() async {
+    await _call('POST', '/v1/update/download');
+  }
+
+  /// Swaps in the downloaded version. The service then reopens the app and
+  /// restarts itself, so the caller should quit right after.
+  Future<void> installUpdate() async {
+    await _call('POST', '/v1/update/install');
+  }
+
+  /// Opens a web page in the default browser.
+  static Future<void> openUrl(String url) async {
+    if (url.isEmpty) return;
+    if (Platform.isMacOS) {
+      await Process.start('open', [url]);
+    } else if (Platform.isWindows) {
+      await Process.start('rundll32', ['url.dll,FileProtocolHandler', url]);
+    } else {
+      await Process.start('xdg-open', [url]);
+    }
+  }
+
   Future<MothballConfig> saveConfig(MothballConfig c) async =>
       MothballConfig.fromJson((await _call('PUT', '/v1/config', c.toJson())) as Map<String, dynamic>);
 

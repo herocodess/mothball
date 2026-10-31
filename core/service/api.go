@@ -130,6 +130,23 @@ func (s *Service) Handler(token, host string) http.Handler {
 		}
 		reply(w, map[string]bool{"ok": err == nil}, err)
 	})
+	mux.HandleFunc("POST /v1/update/check", func(w http.ResponseWriter, r *http.Request) {
+		reply(w, s.CheckUpdate(), nil)
+	})
+	mux.HandleFunc("POST /v1/update/download", func(w http.ResponseWriter, r *http.Request) {
+		if err := s.DownloadUpdate(); err != nil {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		reply(w, map[string]bool{"ok": true}, nil)
+	})
+	mux.HandleFunc("POST /v1/update/install", func(w http.ResponseWriter, r *http.Request) {
+		if err := s.InstallUpdate(); err != nil {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		reply(w, map[string]bool{"ok": true}, nil)
+	})
 	mux.HandleFunc("GET /v1/config", func(w http.ResponseWriter, r *http.Request) {
 		c, err := s.Config()
 		reply(w, c, err)
@@ -171,6 +188,10 @@ func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 }
 
 func reply(w http.ResponseWriter, v any, err error) {
+	if errors.Is(err, ErrUpdateRequired) {
+		http.Error(w, err.Error(), http.StatusLocked)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

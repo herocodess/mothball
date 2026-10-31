@@ -162,6 +162,7 @@ class MothballConfig {
     required this.autoEmptyDays,
     required this.checkMinutes,
     this.onboarded = false,
+    this.skipUpdateCheck = false,
   });
 
   factory MothballConfig.fromJson(Map<String, dynamic> j) => MothballConfig(
@@ -172,6 +173,7 @@ class MothballConfig {
         autoEmptyDays: _int(j['autoEmptyDays']),
         checkMinutes: _int(j['checkMinutes']),
         onboarded: _bool(j['onboarded']),
+        skipUpdateCheck: _bool(j['skipUpdateCheck']),
       );
 
   final List<String> roots;
@@ -181,6 +183,7 @@ class MothballConfig {
   final int autoEmptyDays;
   final int checkMinutes;
   final bool onboarded;
+  final bool skipUpdateCheck;
 
   MothballConfig copyWith({
     List<String>? roots,
@@ -189,6 +192,7 @@ class MothballConfig {
     int? targetFreeGB,
     int? autoEmptyDays,
     bool? onboarded,
+    bool? skipUpdateCheck,
   }) =>
       MothballConfig(
         roots: roots ?? this.roots,
@@ -198,12 +202,14 @@ class MothballConfig {
         autoEmptyDays: autoEmptyDays ?? this.autoEmptyDays,
         checkMinutes: checkMinutes,
         onboarded: onboarded ?? this.onboarded,
+        skipUpdateCheck: skipUpdateCheck ?? this.skipUpdateCheck,
       );
 
   Map<String, dynamic> toJson() => {
         'roots': roots,
         'idleDays': idleDays,
         'autopilot': autopilot,
+        'skipUpdateCheck': skipUpdateCheck,
         'targetFreeGB': targetFreeGB,
         'autoEmptyDays': autoEmptyDays,
         'checkMinutes': checkMinutes,
@@ -222,6 +228,7 @@ class Status {
     required this.lastScan,
     required this.mothballed,
     required this.events,
+    this.update,
   });
 
   factory Status.fromJson(Map<String, dynamic> j) => Status(
@@ -234,6 +241,7 @@ class Status {
         lastScan: j['lastScan'] is Map<String, dynamic> ? ScanSummary.fromJson(j['lastScan'] as Map<String, dynamic>) : null,
         mothballed: _list(j['mothballed']).map((e) => MothballedProject.fromJson(e as Map<String, dynamic>)).toList(),
         events: _list(j['events']).map((e) => ServiceEvent.fromJson(e as Map<String, dynamic>)).toList(),
+        update: j['update'] is Map<String, dynamic> ? UpdateInfo.fromJson(j['update'] as Map<String, dynamic>) : null,
       );
 
   final AccessInfo access;
@@ -245,6 +253,51 @@ class Status {
   final ScanSummary? lastScan;
   final List<MothballedProject> mothballed;
   final List<ServiceEvent> events;
+  final UpdateInfo? update;
+}
+
+/// A newer release, and how far along installing it is.
+class UpdateInfo {
+  UpdateInfo({
+    required this.current,
+    required this.latest,
+    required this.available,
+    required this.required,
+    required this.message,
+    required this.notesUrl,
+    required this.canInstall,
+    required this.phase,
+    required this.progress,
+    required this.error,
+  });
+
+  factory UpdateInfo.fromJson(Map<String, dynamic> j) => UpdateInfo(
+        current: _str(j['current']),
+        latest: _str(j['latest']),
+        available: _bool(j['available']),
+        required: _bool(j['required']),
+        message: _str(j['message']),
+        notesUrl: _str(j['notesUrl']),
+        canInstall: _bool(j['canInstall']),
+        phase: _str(j['phase']),
+        progress: j['progress'] is num ? (j['progress'] as num).toDouble() : 0,
+        error: _str(j['error']),
+      );
+
+  final String current;
+  final String latest;
+  final bool available;
+  final bool required; // this version must update before Mothball moves files
+  final String message;
+  final String notesUrl;
+  final bool canInstall; // false: send the user to the download page
+  final String phase; // '', checking, downloading, ready, installing
+  final double progress;
+  final String error;
+
+  bool get downloading => phase == 'downloading';
+  bool get ready => phase == 'ready';
+  bool get installing => phase == 'installing';
 }
 
 class CleanResult {

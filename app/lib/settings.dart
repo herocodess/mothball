@@ -5,10 +5,18 @@ import 'motion.dart';
 import 'theme.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.config, required this.onSave});
+  const SettingsScreen({
+    super.key,
+    required this.config,
+    required this.onSave,
+    this.version = '',
+    this.onCheckUpdate,
+  });
 
   final MothballConfig config;
   final Future<void> Function(MothballConfig) onSave;
+  final String version;
+  final Future<UpdateInfo?> Function()? onCheckUpdate;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -18,6 +26,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late MothballConfig _c = widget.config;
   late final TextEditingController _roots = TextEditingController(text: widget.config.roots.join('\n'));
   bool _saving = false;
+  bool _checking = false;
+  String? _checkResult;
+
+  Future<void> _checkNow() async {
+    setState(() {
+      _checking = true;
+      _checkResult = null;
+    });
+    String msg;
+    try {
+      final u = await widget.onCheckUpdate!();
+      if (u == null || u.error.isNotEmpty) {
+        msg = "Couldn't reach GitHub. Try again in a bit.";
+      } else if (u.available) {
+        msg = 'Mothball ${u.latest} is out. Update from the banner on the main screen.';
+      } else {
+        msg = "You're on the latest version.";
+      }
+    } catch (_) {
+      msg = "Couldn't check right now.";
+    }
+    if (mounted) {
+      setState(() {
+        _checking = false;
+        _checkResult = msg;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -105,6 +141,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         max: 60,
                         onChanged: (v) => setState(() => _c = _c.copyWith(autoEmptyDays: v)),
                       ),
+                    ),
+                  ])),
+                  staggered(_Group(children: [
+                    _Toggle(
+                      title: 'Check for updates',
+                      hint: 'Once a day, Mothball asks GitHub whether a newer version is out. Nothing about you or your projects is sent.',
+                      value: !_c.skipUpdateCheck,
+                      onChanged: (v) => setState(() => _c = _c.copyWith(skipUpdateCheck: !v)),
+                    ),
+                    Divider(height: 1, color: MB.line(context)),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 18, 16),
+                      child: Row(children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(widget.version.isEmpty ? 'Mothball' : 'Mothball ${widget.version}',
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            if (_checkResult != null) ...[
+                              const SizedBox(height: 4),
+                              Text(_checkResult!, style: TextStyle(color: quiet)),
+                            ],
+                          ]),
+                        ),
+                        if (widget.onCheckUpdate != null)
+                          OutlinedButton(
+                            onPressed: _checking ? null : _checkNow,
+                            child: Text(_checking ? 'Checking…' : 'Check now'),
+                          ),
+                      ]),
                     ),
                   ])),
                   staggered(_Group(children: [
