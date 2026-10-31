@@ -98,7 +98,7 @@ class UpdateBanner extends StatelessWidget {
                   tween: Tween(end: u.progress),
                   duration: const Duration(milliseconds: 500),
                   curve: ease,
-                  builder: (_, v, _) => LinearProgressIndicator(
+                  builder: (context, v, child) => LinearProgressIndicator(
                     value: v,
                     minHeight: 3,
                     color: accent,
