@@ -49,11 +49,15 @@ sed -e "s/@VERSION@/$VERSION/" -e "s/@DATE@/$(date -u +%Y-%m-%d)/" \
   packaging/linux/dev.mothball.mothball.metainfo.xml > "$METAINFO"
 
 # 3. .deb and .rpm.
+#    nfpm expands variables in fields like version and arch, but not in the
+#    file list, so the paths are written into a copy of the config.
 NFPM=${NFPM:-nfpm}
+CONF="$OUT/nfpm.yaml"
+sed -e "s|\${BUNDLE}|$BUNDLE|g" -e "s|\${METAINFO}|$METAINFO|g" packaging/linux/nfpm.yaml > "$CONF"
 for packager in deb rpm; do
-  VERSION=$VERSION ARCH=$GOARCH BUNDLE=$BUNDLE METAINFO=$METAINFO \
-    "$NFPM" package --config packaging/linux/nfpm.yaml --packager $packager --target "$OUT/"
+  VERSION=$VERSION ARCH=$GOARCH "$NFPM" package --config "$CONF" --packager $packager --target "$OUT/"
 done
+rm "$CONF"
 
 # 4. AppImage: the same bundle under opt/mothball, with AppRun choosing
 #    between the app and the command line tool.

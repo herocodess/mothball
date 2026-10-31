@@ -1,5 +1,6 @@
 # .deb and .rpm packages, built by scripts/build-linux.sh with nfpm.
-# VERSION, ARCH (amd64 or arm64) and BUNDLE come from the environment.
+# VERSION and ARCH (amd64 or arm64) come from the environment; the script
+# fills in ${BUNDLE} and ${METAINFO} before packing.
 name: mothball
 arch: ${ARCH}
 platform: linux
