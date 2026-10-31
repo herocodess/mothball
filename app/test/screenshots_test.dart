@@ -94,7 +94,13 @@ Future<void> loadFonts() async {
 
   const sup = '/System/Library/Fonts/Supplemental';
   await load('Roboto', ['$sup/Arial.ttf', '$sup/Arial Bold.ttf']);
-  final sdk = File(Platform.resolvedExecutable).parent.parent.parent.parent.parent.path;
+  // The Flutter SDK folder: FLUTTER_ROOT when set, else found from the test runner's path.
+  var sdk = Platform.environment['FLUTTER_ROOT'] ?? '';
+  if (sdk.isEmpty) {
+    final exe = Platform.resolvedExecutable;
+    final i = exe.indexOf('/bin/cache/');
+    sdk = i > 0 ? exe.substring(0, i) : '';
+  }
   await load('MaterialIcons', ['$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
 }
 
