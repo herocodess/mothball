@@ -46,7 +46,7 @@ class AccessOnboarding extends StatelessWidget {
             TextSpan(text: 'all', style: TextStyle(fontStyle: FontStyle.italic, color: MB.accentOn(context))),
             const TextSpan(text: ' your projects'),
           ]),
-          style: MB.display(context, 58),
+          style: MB.display(context, 50),
         ),
       ),
       const SizedBox(height: 18),

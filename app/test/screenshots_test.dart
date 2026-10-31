@@ -97,7 +97,6 @@ Future<void> loadFonts() async {
   await load('Instrument Sans', [
     for (final w in ['Regular', 'Italic', 'Medium', 'SemiBold']) '$fonts/InstrumentSans-$w.ttf',
   ]);
-  await load('Instrument Serif', ['$fonts/InstrumentSerif-Regular.ttf', '$fonts/InstrumentSerif-Italic.ttf']);
   await load('Menlo', ['/System/Library/Fonts/Menlo.ttc']);
 
   // The Flutter SDK folder: FLUTTER_ROOT when set, else found from the test runner's path.

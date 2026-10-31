@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Mothball's palette and type. Instrument Serif carries the big moments,
-/// Instrument Sans carries everything you read and click.
+/// Mothball's palette and type: Instrument Sans throughout, set heavier and
+/// tighter for the big moments.
 class MB {
   static const sans = 'Instrument Sans';
-  static const serif = 'Instrument Serif';
 
   static const ink = Color(0xFF12161C);
   static const accent = Color(0xFF2BB673);
@@ -14,12 +13,13 @@ class MB {
   static const card = Color(0xFFFFFFFF);
   static const cardDark = Color(0xFF161A20);
 
-  /// Big serif display text: numbers and headlines.
+  /// Display text for numbers and headlines.
   static TextStyle display(BuildContext context, double size, {Color? color, FontStyle? style}) => TextStyle(
-        fontFamily: serif,
+        fontFamily: sans,
         fontSize: size,
-        height: 1.05,
-        letterSpacing: -0.02 * size,
+        fontWeight: FontWeight.w600,
+        height: 1.08,
+        letterSpacing: -0.035 * size,
         fontStyle: style,
         color: color ?? Theme.of(context).colorScheme.onSurface,
       );
@@ -111,7 +111,7 @@ ThemeData buildTheme(Brightness b) {
     dialogTheme: DialogThemeData(
       backgroundColor: dark ? MB.cardDark : MB.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      titleTextStyle: const TextStyle(fontFamily: MB.serif, fontSize: 30, height: 1.1),
+      titleTextStyle: const TextStyle(fontFamily: MB.sans, fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.6, height: 1.2),
     ),
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),

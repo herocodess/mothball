@@ -47,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Row(children: [
             IconButton(tooltip: 'Back', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_rounded)),
             const SizedBox(width: 6),
-            Text('Settings', style: MB.display(context, 34)),
+            Text('Settings', style: MB.display(context, 28)),
             const Spacer(),
             FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Save')),
           ]),
@@ -242,7 +242,7 @@ class _Value extends StatelessWidget {
               ],
             ]),
           ),
-          Text('$v', style: MB.display(context, 44)),
+          Text('$v', style: MB.display(context, 36)),
           const SizedBox(width: 6),
           Padding(
             padding: const EdgeInsets.only(bottom: 6),

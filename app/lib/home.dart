@@ -239,7 +239,7 @@ class _TopBar extends StatelessWidget {
       child: Row(children: [
         MothLogo(size: 30, busy: busy),
         const SizedBox(width: 10),
-        Text('mothball', style: MB.display(context, 30)),
+        Text('mothball', style: MB.display(context, 24)),
         const Spacer(),
         AnimatedOpacity(
           opacity: running ? 1 : 0,
@@ -394,10 +394,10 @@ class _SpacePanel extends StatelessWidget {
                 CountUp(
                   value: gb,
                   format: (v) => v >= 100 ? v.toStringAsFixed(0) : v.toStringAsFixed(1),
-                  style: MB.display(context, 84),
+                  style: MB.display(context, 72),
                 ),
                 const SizedBox(width: 10),
-                Text('GB', style: MB.display(context, 34, color: quiet)),
+                Text('GB', style: MB.display(context, 28, color: quiet)),
               ]),
             ]),
           ),
@@ -580,7 +580,7 @@ class _SectionHeader extends StatelessWidget {
     return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: MB.display(context, 34)),
+          Text(title, style: MB.display(context, 26)),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(subtitle!, style: TextStyle(color: MB.quiet(context))),
@@ -948,7 +948,7 @@ class _OfflineState extends State<_Offline> {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               MothLogo(size: 84, alive: true, busy: _starting),
               const SizedBox(height: 28),
-              Text('Mothball is resting', textAlign: TextAlign.center, style: MB.display(context, 46)),
+              Text('Mothball is resting', textAlign: TextAlign.center, style: MB.display(context, 40)),
               const SizedBox(height: 12),
               Text(
                 'Its background service is not running. Mothball does its work there, so autopilot keeps going even when this window is closed.',

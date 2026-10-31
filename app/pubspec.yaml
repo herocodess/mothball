@@ -29,8 +29,3 @@ flutter:
           weight: 500
         - asset: assets/fonts/InstrumentSans-SemiBold.ttf
           weight: 600
-    - family: Instrument Serif
-      fonts:
-        - asset: assets/fonts/InstrumentSerif-Regular.ttf
-        - asset: assets/fonts/InstrumentSerif-Italic.ttf
-          style: italic
