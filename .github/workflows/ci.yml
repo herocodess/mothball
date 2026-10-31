@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# Workflows only read the code; a pull request cannot use them to write to the repo.
+permissions:
+  contents: read
+
 jobs:
   core:
     name: core and cli (${{ matrix.os }})

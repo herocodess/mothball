@@ -16,3 +16,19 @@ go run ./cli/mothball scan ~/dev
 ```
 
 CI runs the tests on macOS, Windows and Linux.
+
+The end to end tests run the real binary against fake projects and move folders to the Trash. CI runs them on Windows, Linux and macOS, on x64 and Arm:
+
+```sh
+go test -tags e2e ./e2e
+```
+
+## Pull requests
+
+`main` is protected. Every change, including the maintainer's, goes through a pull request that:
+
+- passes every check on all systems (unit tests, end to end tests, desktop app builds)
+- is reviewed and approved by the maintainer
+- is up to date with `main` before it merges
+
+Fork the repo, push a branch to your fork, and open a pull request. For a first-time contributor, CI waits until the maintainer starts it, so nobody's code runs on the project's machines unseen.
