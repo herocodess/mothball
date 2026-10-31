@@ -33,7 +33,7 @@ Every project you clone, build and forget keeps its `node_modules`, `build`, `.d
 
 ## What it covers
 
-Each stack is a small rule pack, so adding a new one is a single pull request. 23 packs ship today, and every one is tested automatically against a same-named source folder.
+Each stack is a small rule pack, so adding a new one is a single pull request. 22 packs ship today, and every one is tested automatically against a same-named source folder.
 
 | Area | Stacks |
 | --- | --- |
