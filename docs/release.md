@@ -32,7 +32,8 @@ macOS names whichever program asks for access. During development that is your t
 - [x] Self-update: download the installer for this architecture, check its checksum, run it silently
 - [x] CI installs, opens, updates and uninstalls on Windows x64 and Arm64 for every change
 - [ ] Code signing (SignPath Foundation, free for open source), so SmartScreen stops warning
-- [ ] winget and Scoop manifests
+- [x] Scoop bucket (herocodess/scoop-bucket), updated from the release checksums
+- [ ] winget manifest
 - [ ] Auto-empty for the Recycle Bin (off until Mothball can find its own items there safely)
 
 ## Linux
@@ -55,7 +56,7 @@ macOS names whichever program asks for access. During development that is your t
 3. Build the Linux CLIs (`GOOS=linux`, amd64 and arm64, `-X main.version=...`). The Windows installers, zips and CLIs are built by the `windows` workflow when the tag is pushed, and attached to the release with their checksums.
 4. Write `checksums-<version>.txt` covering every file (`shasum -a 256`). The in-app updater refuses a DMG that is not listed in it.
 5. Tag `v<version>`, then `gh release create v<version>` with the DMG, the CLIs and the checksums file.
-6. Update the cask and formula in `herocodess/homebrew-tap` (version and sha256). From 0.1.1 on, the cask carries `auto_updates true`, since the app updates itself.
+6. Update the cask and formula in `herocodess/homebrew-tap` (version and sha256), and `bucket/mothball.json` in `herocodess/scoop-bucket` (version and the two zip hashes from the checksums file). From 0.1.1 on, the cask carries `auto_updates true`, since the app updates itself.
 
 ### Updates
 
