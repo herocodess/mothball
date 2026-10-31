@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/herocodess/mothball/core/access"
+	"github.com/herocodess/mothball/core/caches"
 	"github.com/herocodess/mothball/core/clean"
 	"github.com/herocodess/mothball/core/config"
 	"github.com/herocodess/mothball/core/disk"
@@ -30,6 +31,7 @@ type Service struct {
 
 	// Swappable for tests.
 	Free        func(path string) (uint64, error)
+	Caches      *caches.Kit
 	HasFullDisk func(home string) bool
 	Trash       trash.Trasher
 	Now         func() time.Time
@@ -55,6 +57,20 @@ type ScanSummary struct {
 	IdleBytes  int64            `json:"idleBytes"`
 	Active     []scan.Candidate `json:"active"`
 	ActiveSize int64            `json:"activeBytes"`
+	// Caches are shared tool caches outside projects, largest first.
+	Caches []caches.Cache `json:"caches"`
+	// CacheBytes is what can be cleaned from caches right now.
+	CacheBytes int64 `json:"cacheBytes"`
+}
+
+func cleanable(cs []caches.Cache) int64 {
+	var n int64
+	for _, c := range cs {
+		if c.Policy != caches.Report && c.Blocked == "" {
+			n += c.Bytes
+		}
+	}
+	return n
 }
 
 // Event is something worth telling the user about.
@@ -72,7 +88,8 @@ func New(dir, home string, packs *pack.Set) (*Service, error) {
 		return nil, err
 	}
 	return &Service{Dir: dir, Home: home, Packs: packs, Free: disk.Free, HasFullDisk: access.HasFullDisk,
-		Trash: trash.Default(), Now: time.Now, log: log}, nil
+		Caches: caches.DefaultKit(home, log),
+		Trash:  trash.Default(), Now: time.Now, log: log}, nil
 }
 
 // Config returns the saved settings.
@@ -121,6 +138,8 @@ func (s *Service) scanLocked() (*ScanSummary, error) {
 			sum.ActiveSize += x.Bytes
 		}
 	}
+	sum.Caches = s.Caches.Survey()
+	sum.CacheBytes = cleanable(sum.Caches)
 	s.scanMu.Lock()
 	s.lastScan = sum
 	s.scanMu.Unlock()
@@ -215,6 +234,45 @@ func (s *Service) Clean(paths []string) ([]clean.Outcome, error) {
 	return out, nil
 }
 
+// CacheResult says what happened to one cache.
+type CacheResult struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Bytes int64  `json:"bytes"`
+	Error string `json:"error,omitempty"`
+}
+
+// CleanCaches cleans the caches with the given ids, which the user picked.
+func (s *Service) CleanCaches(ids []string) ([]CacheResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	want := map[string]bool{}
+	for _, id := range ids {
+		want[id] = true
+	}
+	var out []CacheResult
+	for _, cc := range s.Caches.Survey() {
+		if !want[cc.ID] {
+			continue
+		}
+		n, err := s.Caches.Clean(cc)
+		r := CacheResult{ID: cc.ID, Name: cc.Name, Bytes: n}
+		if err != nil {
+			r.Error = err.Error()
+		}
+		out = append(out, r)
+	}
+	s.scanMu.Lock()
+	if s.lastScan != nil {
+		fresh := *s.lastScan
+		fresh.Caches = s.Caches.Survey()
+		fresh.CacheBytes = cleanable(fresh.Caches)
+		s.lastScan = &fresh
+	}
+	s.scanMu.Unlock()
+	return out, nil
+}
+
 // Wake restores one mothballed project.
 func (s *Service) Wake(project string) error {
 	s.mu.Lock()
@@ -292,23 +350,43 @@ func (s *Service) Tick() {
 		pick = append(pick, x)
 		picked += x.Bytes
 	}
-	if len(pick) == 0 {
-		s.event("autopilot", "Free space is below target, but no idle projects have build output to put away", 0)
-		return
-	}
 	var moved int64
-	for _, o := range clean.Run(pick, c.IdleDays, s.scanner(), s.Trash, s.log, s.Now()) {
-		if o.Err == nil {
-			moved += o.Candidate.Bytes
+	if len(pick) > 0 {
+		for _, o := range clean.Run(pick, c.IdleDays, s.scanner(), s.Trash, s.log, s.Now()) {
+			if o.Err == nil {
+				moved += o.Candidate.Bytes
+			}
 		}
+		msg := "Put away build output from idle projects"
+		if c.AutoEmptyDays > 0 {
+			msg += "; it is emptied from the Trash after the grace period"
+		} else {
+			msg += "; empty the Trash to free the space"
+		}
+		s.event("autopilot", msg, moved)
 	}
-	msg := "Put away build output from idle projects"
-	if c.AutoEmptyDays > 0 {
-		msg += "; it is emptied from the Trash after the grace period"
-	} else {
-		msg += "; empty the Trash to free the space"
+	// Still short: clean the caches that only cost a re-download, largest first.
+	var fromCaches int64
+	for _, cc := range sum.Caches {
+		if moved+fromCaches >= need {
+			break
+		}
+		if cc.Policy != caches.Auto || cc.Blocked != "" || cc.Bytes == 0 {
+			continue
+		}
+		n, err := s.Caches.Clean(cc)
+		if err != nil {
+			s.event("error", cc.Name+": "+err.Error(), 0)
+			continue
+		}
+		fromCaches += n
 	}
-	s.event("autopilot", msg, moved)
+	if fromCaches > 0 {
+		s.event("autopilot", "Cleaned tool caches that download again when needed", fromCaches)
+	}
+	if moved+fromCaches == 0 {
+		s.event("autopilot", "Free space is below target, but there is nothing idle or cached to put away", 0)
+	}
 	_, _ = s.scanLocked()
 }
 

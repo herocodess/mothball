@@ -71,6 +71,15 @@ Map<String, dynamic> sample({required bool fullDisk, required bool onboarded}) {
       'projects': 312,
       'idle': idle,
       'idleBytes': idle.fold<int>(0, (s, c) => s + (c['bytes'] as int)),
+      'caches': [
+        {'id': 'xcode-derived-data', 'name': 'Xcode DerivedData', 'policy': 'auto', 'bytes': 7516192768, 'how': 'Moves Xcode build data to the Trash. Xcode rebuilds it on the next build.'},
+        {'id': 'gradle', 'name': 'Gradle caches', 'policy': 'ask', 'bytes': 10630044058, 'how': 'Moves Gradle caches to the Trash while no Gradle daemon is running.'},
+        {'id': 'cocoapods', 'name': 'CocoaPods cache', 'policy': 'auto', 'bytes': 5476083302, 'how': 'Runs pod cache clean --all.'},
+        {'id': 'npm', 'name': 'npm cache', 'policy': 'auto', 'bytes': 2684354560, 'how': 'Runs npm cache clean --force.'},
+        {'id': 'vscode', 'name': 'VS Code caches', 'policy': 'auto', 'bytes': 912680550, 'how': 'Moves web caches to the Trash while VS Code is closed.', 'blocked': 'Code is running'},
+        {'id': 'android-emulators', 'name': 'Android emulators', 'policy': 'report', 'bytes': 12133306368, 'how': 'Delete emulators you no longer use in Android Studio.'},
+      ],
+      'cacheBytes': 26306674688,
     },
     'mothballed': [
       {'path': '/Users/hero/dev/kuvori-mobile', 'since': '2026-10-02T10:00:00Z', 'bytes': 860000000, 'returned': true, 'commands': ['flutter pub get']},
@@ -133,10 +142,10 @@ void main() {
   setUpAll(loadFonts);
 
   testWidgets('onboarding', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: false))), '1-onboarding'));
-  testWidgets('home, access missing', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: true))), '2-home-reminder', size: const Size(1100, 1560)));
-  testWidgets('home', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: true, onboarded: true))), '3-home', size: const Size(1100, 1500)));
+  testWidgets('home, access missing', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: true))), '2-home-reminder', size: const Size(1100, 2300)));
+  testWidgets('home', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: true, onboarded: true))), '3-home', size: const Size(1100, 2240)));
   testWidgets('home, dark', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: true, onboarded: true))), '6-home-dark',
-      size: const Size(1100, 1500), brightness: Brightness.dark));
+      size: const Size(1100, 2240), brightness: Brightness.dark));
   testWidgets('settings', (t) {
     final c = Status.fromJson(sample(fullDisk: true, onboarded: true)).config;
     return shoot(

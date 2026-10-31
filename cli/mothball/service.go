@@ -146,6 +146,9 @@ func cmdStatus(args []string, stdout, stderr io.Writer) int {
 	if st.LastScan != nil {
 		fmt.Fprintf(stdout, "Reclaimable:  %s in %s (scanned %s)\n", human(st.LastScan.IdleBytes),
 			folders(len(st.LastScan.Idle)), st.LastScan.At.Format("2 Jan 15:04"))
+		if st.LastScan.CacheBytes > 0 {
+			fmt.Fprintf(stdout, "Caches:       %s can be cleaned (mothball caches)\n", human(st.LastScan.CacheBytes))
+		}
 	}
 	if n := len(st.Mothballed); n > 0 {
 		fmt.Fprintf(stdout, "Mothballed:   %s (mothball wake to list)\n", plural(n, "project"))
