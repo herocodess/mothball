@@ -13,12 +13,14 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/herocodess/mothball/core/history"
 	"github.com/herocodess/mothball/core/pack"
 	"github.com/herocodess/mothball/core/service"
+	"github.com/herocodess/mothball/core/tray"
 	"github.com/herocodess/mothball/rules"
 )
 
@@ -56,10 +58,27 @@ func cmdService(args []string, stdout, stderr io.Writer) int {
 		defer os.Remove(service.EndpointFile(s.Dir))
 		fmt.Fprintln(stdout, "Mothball service running.")
 		stop := make(chan struct{})
+		var once sync.Once
+		shutdown := func() { once.Do(func() { close(stop) }) }
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-		go func() { <-sig; close(stop) }()
-		s.Run(stop)
+		withTray := tray.Available() && !hasFlag(args[1:], "--no-tray")
+		go func() {
+			<-sig
+			shutdown()
+			if withTray {
+				tray.Quit()
+			}
+		}()
+		if !withTray {
+			s.Run(stop)
+			return 0
+		}
+		done := make(chan struct{})
+		go func() { s.Run(stop); close(done) }()
+		tray.Run(s, openApp, shutdown) // owns the main thread until Quit
+		shutdown()
+		<-done
 		return 0
 	case "install":
 		return installService(stdout, stderr)
@@ -134,6 +153,39 @@ func cmdStatus(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+func hasFlag(args []string, f string) bool {
+	for _, a := range args {
+		if a == f {
+			return true
+		}
+	}
+	return false
+}
+
+// openApp opens the desktop window. MOTHBALL_APP overrides where it is.
+func openApp() {
+	app := os.Getenv("MOTHBALL_APP")
+	switch runtime.GOOS {
+	case "darwin":
+		if app != "" {
+			_ = exec.Command("open", app).Start()
+		} else {
+			_ = exec.Command("open", "-a", "Mothball").Start()
+		}
+	case "windows":
+		if app == "" {
+			exe, _ := os.Executable()
+			app = filepath.Join(filepath.Dir(exe), "Mothball.exe")
+		}
+		_ = exec.Command("cmd", "/C", "start", "", app).Start()
+	default:
+		if app == "" {
+			app = "mothball-app"
+		}
+		_ = exec.Command(app).Start()
+	}
+}
+
 const launchdLabel = "dev.mothball.service"
 
 func installService(stdout, stderr io.Writer) int {
@@ -155,8 +207,8 @@ func installService(stdout, stderr io.Writer) int {
   <key>ProgramArguments</key>
   <array><string>%s</string><string>service</string><string>run</string></array>
   <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>ProcessType</key><string>Background</string>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ProcessType</key><string>Interactive</string>
   <key>LowPriorityIO</key><true/>
   <key>Nice</key><integer>10</integer>
 </dict>
