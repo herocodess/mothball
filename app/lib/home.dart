@@ -864,7 +864,11 @@ class _CachesPanel extends StatelessWidget {
                   SizedBox(
                     width: 120,
                     child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(humanBytes(c.bytes), style: const TextStyle(fontWeight: FontWeight.w500, fontFeatures: [FontFeature.tabularFigures()])),
+                      Text(c.bytes == 0 ? 'size unknown' : humanBytes(c.bytes),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: c.bytes == 0 ? quiet : null,
+                              fontFeatures: const [FontFeature.tabularFigures()])),
                       const SizedBox(height: 6),
                       Container(
                         width: double.infinity,

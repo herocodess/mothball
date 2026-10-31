@@ -49,7 +49,11 @@ func cmdCaches(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			if c.Policy != caches.Report && c.Blocked == "" {
 				total += c.Bytes
 			}
-			fmt.Fprintf(tw, "%s\t %s\t %s\t %s\t\n", human(c.Bytes), c.ID, c.Name, note)
+			size := human(c.Bytes)
+			if c.Bytes == 0 {
+				size = "unknown"
+			}
+			fmt.Fprintf(tw, "%s\t %s\t %s\t %s\t\n", size, c.ID, c.Name, note)
 		}
 		tw.Flush()
 		fmt.Fprintf(stdout, "\nCleanable now: %s.\n", human(total))
