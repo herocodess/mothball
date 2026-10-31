@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import 'logo.dart';
 import 'models.dart';
+import 'motion.dart';
+import 'theme.dart';
 
 const _fdaSettings = 'x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles';
 
@@ -14,7 +17,7 @@ Future<void> openFullDiskSettings() => Process.run('open', [_fdaSettings]);
 Future<void> revealInFinder(String path) => Process.run('open', ['-R', path]);
 
 String _folderNames(List<String> paths) {
-  final names = paths.map((p) => p.split('/').where((s) => s.isNotEmpty).last).toList();
+  final names = paths.take(3).map((p) => p.split('/').where((s) => s.isNotEmpty).last).toList();
   if (names.isEmpty) return 'Desktop, Documents and Downloads';
   if (names.length == 1) return names.single;
   return '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
@@ -31,78 +34,219 @@ class AccessOnboarding extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final quiet = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const MothLogo(size: 56),
-            const SizedBox(height: 24),
-            Text('Let Mothball see all your projects', style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            Text(
-              'macOS keeps ${_folderNames(access.skipped)} private until you allow access. '
-              'Many projects live there, so Mothball asks once for Full Disk Access instead of '
-              'interrupting you with a prompt for each folder.',
-              style: t.bodyLarge,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Mothball only reads folder names and sizes to find build output. It never opens your '
-              'documents, never sends anything off your Mac, and never touches files tracked by git.',
-              style: t.bodyMedium?.copyWith(color: quiet),
-            ),
-            const SizedBox(height: 24),
-            const _Step(n: 1, text: 'Open Full Disk Access in System Settings.'),
-            const _Step(n: 2, text: 'Click +, or drag Mothball into the list from the Finder window.'),
-            const _Step(n: 3, text: 'Turn it on, then come back and check again.'),
-            const SizedBox(height: 24),
-            Wrap(spacing: 12, runSpacing: 12, children: [
-              const FilledButton(onPressed: openFullDiskSettings, child: Text('Open System Settings')),
-              if (access.executable.isNotEmpty)
-                OutlinedButton(onPressed: () => revealInFinder(access.executable), child: const Text('Show Mothball in Finder')),
-              OutlinedButton(onPressed: onCheck, child: const Text('Check again')),
-            ]),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: onSkip,
-              child: Text('Not now: scan everything except ${_folderNames(access.skipped)}'),
-            ),
+    final quiet = MB.quiet(context);
+    final copy = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Appear(child: Text('ONE THING FIRST', style: TextStyle(fontSize: 12, letterSpacing: 1.6, fontWeight: FontWeight.w600, color: MB.accentOn(context)))),
+      const SizedBox(height: 14),
+      Appear(
+        delay: const Duration(milliseconds: 80),
+        child: Text.rich(
+          TextSpan(children: [
+            const TextSpan(text: 'Let Mothball see '),
+            TextSpan(text: 'all', style: TextStyle(fontStyle: FontStyle.italic, color: MB.accentOn(context))),
+            const TextSpan(text: ' your projects'),
           ]),
+          style: MB.display(context, 58),
         ),
       ),
-    );
+      const SizedBox(height: 18),
+      Appear(
+        delay: const Duration(milliseconds: 160),
+        child: Text(
+          'macOS keeps ${_folderNames(access.skipped)} private. Plenty of projects live there, so Mothball asks once for '
+          'Full Disk Access rather than interrupting you with a prompt for every folder.',
+          style: const TextStyle(fontSize: 17, height: 1.55),
+        ),
+      ),
+      const SizedBox(height: 14),
+      Appear(
+        delay: const Duration(milliseconds: 220),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(Icons.verified_user_outlined, size: 18, color: quiet),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'It only reads folder names and sizes. It never opens your documents, never sends anything off your Mac, '
+              'and never touches files tracked by git.',
+              style: TextStyle(color: quiet, height: 1.5),
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 28),
+      Appear(
+        delay: const Duration(milliseconds: 300),
+        child: Wrap(spacing: 10, runSpacing: 10, children: [
+          FilledButton.icon(
+            onPressed: openFullDiskSettings,
+            icon: const Icon(Icons.open_in_new_rounded, size: 18),
+            label: const Text('Open System Settings'),
+          ),
+          if (access.executable.isNotEmpty)
+            OutlinedButton(onPressed: () => revealInFinder(access.executable), child: const Text('Show Mothball in Finder')),
+          OutlinedButton(onPressed: onCheck, child: const Text("I've turned it on")),
+        ]),
+      ),
+      const SizedBox(height: 14),
+      Appear(
+        delay: const Duration(milliseconds: 360),
+        child: TextButton(
+          onPressed: onSkip,
+          style: TextButton.styleFrom(foregroundColor: quiet, padding: EdgeInsets.zero),
+          child: Text('Not now, skip ${_folderNames(access.skipped)}'),
+        ),
+      ),
+    ]);
+
+    return LayoutBuilder(builder: (context, box) {
+      final wide = box.maxWidth > 920;
+      return SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: wide ? 56 : 28, vertical: 32),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1060),
+            child: wide
+                ? Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                    Expanded(flex: 11, child: copy),
+                    const SizedBox(width: 56),
+                    const Expanded(flex: 9, child: Appear(delay: Duration(milliseconds: 260), child: _SettingsPreview())),
+                  ])
+                : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    copy,
+                    const SizedBox(height: 36),
+                    const Appear(delay: Duration(milliseconds: 260), child: _SettingsPreview()),
+                  ]),
+          ),
+        ),
+      );
+    });
   }
 }
 
-class _Step extends StatelessWidget {
-  const _Step({required this.n, required this.text});
+/// A small, animated picture of the Full Disk Access list with Mothball's
+/// switch flipping on, so the user knows exactly what they are looking for.
+class _SettingsPreview extends StatefulWidget {
+  const _SettingsPreview();
 
-  final int n;
-  final String text;
+  @override
+  State<_SettingsPreview> createState() => _SettingsPreviewState();
+}
+
+class _SettingsPreviewState extends State<_SettingsPreview> {
+  bool _on = false;
+  Timer? _t;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (calm(context)) {
+      _t?.cancel();
+      _on = true;
+    } else {
+      _t ??= Timer.periodic(const Duration(milliseconds: 1700), (_) => setState(() => _on = !_on));
+    }
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        CircleAvatar(
-          radius: 12,
-          backgroundColor: scheme.primary.withValues(alpha: 0.15),
-          child: Text('$n', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.primary)),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final win = dark ? const Color(0xFF1E232A) : Colors.white;
+    final bar = dark ? const Color(0xFF262C34) : const Color(0xFFF1F0EB);
+    final quiet = MB.quiet(context);
+    Widget row(Widget icon, String name, {bool mothball = false}) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(border: Border(top: BorderSide(color: MB.line(context)))),
+          child: Row(children: [
+            SizedBox.square(dimension: 28, child: Center(child: icon)),
+            const SizedBox(width: 12),
+            Expanded(child: Text(name, style: TextStyle(fontWeight: mothball ? FontWeight.w600 : FontWeight.w400))),
+            if (mothball)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                curve: ease,
+                width: 38,
+                height: 22,
+                padding: const EdgeInsets.all(2),
+                alignment: _on ? Alignment.centerRight : Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  color: _on ? MB.accent : MB.line(context),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3)],
+                  ),
+                ),
+              )
+            else
+              Container(
+                width: 38,
+                height: 22,
+                padding: const EdgeInsets.all(2),
+                alignment: Alignment.centerLeft,
+                decoration: BoxDecoration(color: MB.line(context), borderRadius: BorderRadius.circular(11)),
+                child: Container(width: 18, height: 18, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+              ),
+          ]),
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: win,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: MB.line(context)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: dark ? 0.4 : 0.08), blurRadius: 40, offset: const Offset(0, 20)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          color: bar,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(children: [
+            for (final c in const [Color(0xFFFF5F57), Color(0xFFFEBC2E), Color(0xFF28C840)])
+              Container(margin: const EdgeInsets.only(right: 7), width: 11, height: 11, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+            const SizedBox(width: 10),
+            Text('Privacy & Security', style: TextStyle(fontSize: 12, color: quiet)),
+          ]),
         ),
-        const SizedBox(width: 12),
-        Expanded(child: Padding(padding: const EdgeInsets.only(top: 2), child: Text(text))),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Full Disk Access', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text('Allow the applications below to access all your files.', style: TextStyle(fontSize: 12, color: quiet)),
+          ]),
+        ),
+        row(Icon(Icons.terminal_rounded, size: 20, color: quiet), 'Terminal'),
+        row(const MothLogo(size: 24), 'Mothball', mothball: true),
+        row(Icon(Icons.backup_outlined, size: 20, color: quiet), 'Backup Utility'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(border: Border(top: BorderSide(color: MB.line(context)))),
+          child: Row(children: [
+            Icon(Icons.add, size: 16, color: quiet),
+            const SizedBox(width: 14),
+            Icon(Icons.remove, size: 16, color: quiet),
+          ]),
+        ),
       ]),
     );
   }
 }
 
-/// A small reminder on the home screen while access is still missing.
+/// A slim reminder on the home screen while access is still missing.
 class AccessReminder extends StatelessWidget {
   const AccessReminder({super.key, required this.access, required this.onCheck});
 
@@ -111,19 +255,25 @@ class AccessReminder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-        child: Row(children: [
-          const Icon(Icons.lock_outline, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text('${_folderNames(access.skipped)} are not being scanned. Give Mothball Full Disk Access to include them.'),
-          ),
-          const TextButton(onPressed: openFullDiskSettings, child: Text('Open Settings')),
-          TextButton(onPressed: onCheck, child: const Text('Check again')),
-        ]),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2B33D).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF2B33D).withValues(alpha: 0.45)),
       ),
+      child: Row(children: [
+        const Icon(Icons.lock_outline_rounded, size: 20, color: Color(0xFFB7791F)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text.rich(TextSpan(children: [
+            TextSpan(text: '${_folderNames(access.skipped)} are not being scanned. ', style: const TextStyle(fontWeight: FontWeight.w600)),
+            const TextSpan(text: 'Give Mothball Full Disk Access to include them.'),
+          ])),
+        ),
+        const TextButton(onPressed: openFullDiskSettings, child: Text('Open Settings')),
+        TextButton(onPressed: onCheck, child: const Text('Check again')),
+      ]),
     );
   }
 }

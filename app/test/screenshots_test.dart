@@ -17,6 +17,7 @@ import 'package:mothball/api.dart';
 import 'package:mothball/main.dart';
 import 'package:mothball/models.dart';
 import 'package:mothball/settings.dart';
+import 'package:mothball/theme.dart';
 
 class FakeApi extends MothballApi {
   FakeApi(this.json) : super(dir: '/nonexistent');
@@ -92,8 +93,13 @@ Future<void> loadFonts() async {
     await loader.load();
   }
 
-  const sup = '/System/Library/Fonts/Supplemental';
-  await load('Roboto', ['$sup/Arial.ttf', '$sup/Arial Bold.ttf']);
+  const fonts = 'assets/fonts';
+  await load('Instrument Sans', [
+    for (final w in ['Regular', 'Italic', 'Medium', 'SemiBold']) '$fonts/InstrumentSans-$w.ttf',
+  ]);
+  await load('Instrument Serif', ['$fonts/InstrumentSerif-Regular.ttf', '$fonts/InstrumentSerif-Italic.ttf']);
+  await load('Menlo', ['/System/Library/Fonts/Menlo.ttc']);
+
   // The Flutter SDK folder: FLUTTER_ROOT when set, else found from the test runner's path.
   var sdk = Platform.environment['FLUTTER_ROOT'] ?? '';
   if (sdk.isEmpty) {
@@ -104,33 +110,43 @@ Future<void> loadFonts() async {
   await load('MaterialIcons', ['$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
 }
 
-Future<void> shoot(WidgetTester tester, Widget app, String name, {Size size = const Size(1100, 860)}) async {
+Future<void> shoot(WidgetTester tester, Widget app, String name,
+    {Size size = const Size(1100, 860), Brightness brightness = Brightness.light}) async {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
+  tester.platformDispatcher.platformBrightnessTestValue = brightness;
   addTearDown(tester.view.reset);
+  addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(app);
   await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
-  await tester.pump(const Duration(milliseconds: 500));
+  // Let the staggered entrances, count-ups and bars finish.
+  for (var i = 0; i < 30; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
   await expectLater(find.byType(MaterialApp).first, matchesGoldenFile('screenshots/$name.png'));
+  await tester.pumpWidget(const SizedBox());
 }
 
 void main() {
   setUpAll(loadFonts);
 
   testWidgets('onboarding', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: false))), '1-onboarding'));
-  testWidgets('home, access missing', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: true))), '2-home-reminder', size: const Size(1100, 1400)));
-  testWidgets('home', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: true, onboarded: true))), '3-home', size: const Size(1100, 1320)));
+  testWidgets('home, access missing', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: false, onboarded: true))), '2-home-reminder', size: const Size(1100, 1560)));
+  testWidgets('home', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: true, onboarded: true))), '3-home', size: const Size(1100, 1500)));
+  testWidgets('home, dark', (t) => shoot(t, MothballApp(api: FakeApi(sample(fullDisk: true, onboarded: true))), '6-home-dark',
+      size: const Size(1100, 1500), brightness: Brightness.dark));
   testWidgets('settings', (t) {
     final c = Status.fromJson(sample(fullDisk: true, onboarded: true)).config;
     return shoot(
       t,
       MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: MothballApp.theme(Brightness.light),
+        theme: buildTheme(Brightness.light),
         home: SettingsScreen(config: c, onSave: (_) async {}),
       ),
       '4-settings',
+      size: const Size(1100, 1060),
     );
   });
-  testWidgets('not running', (t) => shoot(t, MothballApp(api: MothballApi(dir: '/nonexistent')), '5-not-running', size: const Size(1100, 700)));
+  testWidgets('not running', (t) => shoot(t, MothballApp(api: MothballApi(dir: '/nonexistent')), '5-not-running', size: const Size(1100, 760)));
 }

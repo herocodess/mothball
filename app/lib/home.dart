@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -7,7 +8,9 @@ import 'access.dart';
 import 'api.dart';
 import 'logo.dart';
 import 'models.dart';
+import 'motion.dart';
 import 'settings.dart';
+import 'theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.api});
@@ -47,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
         st = await widget.api.status();
       }
       if (justGranted || (scanIfNeeded && st.lastScan == null)) {
-        await _run('Scanning your projects', () => widget.api.scan());
+        await _run('Looking through your projects', () => widget.api.scan());
         st = await widget.api.status();
       }
       if (mounted) {
@@ -87,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _scan() async {
-    await _run('Scanning your projects', () => widget.api.scan());
+    await _run('Looking through your projects', () => widget.api.scan());
     await _refresh();
   }
 
@@ -96,11 +99,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Put away ${items.length == 1 ? '1 folder' : '${items.length} folders'}?'),
-        content: Text(
-          '${humanBytes(total)} of build output moves to the Trash. Your code is not touched, '
-          'and each project can be woken with its usual install command.',
+        title: Text('Put away ${humanBytes(total)}?'),
+        content: SizedBox(
+          width: 420,
+          child: Text(
+            '${items.length == 1 ? 'This folder moves' : '${items.length} folders move'} to the Trash. '
+            'Your code is never touched, and any project can be woken later with its usual install command.',
+          ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Put away')),
@@ -113,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final moved = res.where((r) => r.moved).toList();
     final freed = moved.fold<int>(0, (s, r) => s + r.bytes);
     final left = res.length - moved.length;
-    _toast('Put away ${humanBytes(freed)}${left > 0 ? ', left $left alone' : ''}. Empty the Trash to free it.');
+    _toast('Put away ${humanBytes(freed)}${left > 0 ? ', left $left alone' : ''}.');
     await _refresh();
   }
 
@@ -121,10 +128,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Wake this project?'),
-        content: Text(p.commands.isEmpty
-            ? 'This project rebuilds its output on its own the next time you open it.'
-            : 'Mothball will run, in ${_name(p.path)}:\n\n${p.commands.join('\n')}'),
+        title: Text('Wake ${_name(p.path)}?'),
+        content: SizedBox(
+          width: 420,
+          child: p.commands.isEmpty
+              ? const Text('This project rebuilds its output on its own the next time you open it.')
+              : Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Mothball will run this in the project folder:'),
+                  const SizedBox(height: 12),
+                  for (final c in p.commands) _Code(c),
+                ]),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Wake')),
@@ -144,87 +159,53 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final st = _status;
+    final Widget body;
+    if (_offline != null) {
+      body = _Offline(key: const ValueKey('offline'), reason: _offline!, onRetry: () => _refresh(scanIfNeeded: true));
+    } else if (st == null) {
+      body = const Center(key: ValueKey('loading'), child: MothLogo(size: 56, alive: true, busy: true));
+    } else if (Platform.isMacOS && !st.access.fullDisk && !st.config.onboarded) {
+      body = AccessOnboarding(
+        key: const ValueKey('onboarding'),
+        access: st.access,
+        onCheck: () => _refresh(),
+        onSkip: () => _saveConfig(st.config.copyWith(onboarded: true)),
+      );
+    } else {
+      body = _Dashboard(
+        key: const ValueKey('home'),
+        status: st,
+        busy: _busy,
+        onScan: _scan,
+        onPutAway: _putAway,
+        onWake: _wake,
+        onConfig: _saveConfig,
+      );
+    }
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        titleSpacing: 20,
-        title: const Row(children: [
-          MothLogo(size: 28),
-          SizedBox(width: 10),
-          Text('mothball', style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.5)),
-        ]),
-        actions: [
-          if (st != null)
-            IconButton(
-              tooltip: 'Settings',
-              icon: const Icon(Icons.tune),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SettingsScreen(config: st.config, onSave: _saveConfig)),
-              ),
-            ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Stack(children: [
-        if (_offline != null)
-          _Offline(reason: _offline!, onRetry: () => _refresh(scanIfNeeded: true))
-        else if (st == null)
-          const Center(child: CircularProgressIndicator())
-        else if (Platform.isMacOS && !st.access.fullDisk && !st.config.onboarded)
-          AccessOnboarding(
-            access: st.access,
-            onCheck: () => _refresh(),
-            onSkip: () => _saveConfig(st.config.copyWith(onboarded: true)),
-          )
-        else
-          RefreshIndicator(
-            onRefresh: _scan,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 760),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      if (Platform.isMacOS && !st.access.fullDisk) ...[
-                        AccessReminder(access: st.access, onCheck: _scan),
-                        const SizedBox(height: 16),
-                      ],
-                      _SpaceCard(status: st, onAutopilot: (v) => _saveConfig(st.config.copyWith(autopilot: v))),
-                      const SizedBox(height: 16),
-                      _IdleCard(scan: st.lastScan, idleDays: st.config.idleDays, onScan: _scan, onPutAway: _putAway),
-                      if (st.mothballed.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _MothballedCard(projects: st.mothballed, onWake: _wake),
-                      ],
-                      if (st.events.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _EventsCard(events: st.events),
-                      ],
-                    ]),
+      body: Column(children: [
+        _TopBar(
+          busy: _busy,
+          running: st != null && _offline == null,
+          onSettings: st == null
+              ? null
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SettingsScreen(config: st.config, onSave: _saveConfig)),
                   ),
-                ),
-              ],
-            ),
-          ),
-        if (_busy)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Material(
-              color: Theme.of(context).colorScheme.inverseSurface,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(children: [
-                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                  const SizedBox(width: 12),
-                  Text('$_busyLabel…', style: TextStyle(color: Theme.of(context).colorScheme.onInverseSurface)),
-                ]),
+        ),
+        Expanded(
+          child: Stack(children: [
+            Positioned.fill(
+              child: AnimatedSwitcher(
+                duration: calm(context) ? Duration.zero : const Duration(milliseconds: 420),
+                switchInCurve: ease,
+                child: body,
               ),
             ),
-          ),
+            _BusyPill(visible: _busy, label: _busyLabel),
+          ]),
+        ),
       ]),
     );
   }
@@ -232,179 +213,698 @@ class _HomeScreenState extends State<HomeScreen> {
 
 String _name(String path) => path.split(RegExp(r'[\\/]')).where((s) => s.isNotEmpty).lastOrNull ?? path;
 
-String _shortPath(String path, String project) {
+/// The last two folders of a project path, enough to tell siblings apart.
+String _projectLabel(String project) {
   final parts = project.split(RegExp(r'[\\/]')).where((s) => s.isNotEmpty).toList();
-  final name = parts.isEmpty ? project : parts.last;
-  final out = path.length > project.length ? path.substring(project.length + 1) : _name(path);
-  return '$name / $out';
+  if (parts.length >= 2 && parts.last.length <= 3) return '${parts[parts.length - 2]}/${parts.last}';
+  return parts.isEmpty ? project : parts.last;
 }
 
-class _Section extends StatelessWidget {
-  const _Section({required this.title, this.trailing, required this.child});
+String _outputLabel(Candidate c) =>
+    c.path.length > c.project.length ? c.path.substring(c.project.length + 1) : _name(c.path);
 
-  final String title;
-  final Widget? trailing;
-  final Widget child;
+const _maxWidth = 860.0;
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.busy, required this.running, required this.onSettings});
+
+  final bool busy;
+  final bool running;
+  final VoidCallback? onSettings;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
-            if (trailing != null) trailing!,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 18, 16, 6),
+      child: Row(children: [
+        MothLogo(size: 30, busy: busy),
+        const SizedBox(width: 10),
+        Text('mothball', style: MB.display(context, 30)),
+        const Spacer(),
+        AnimatedOpacity(
+          opacity: running ? 1 : 0,
+          duration: const Duration(milliseconds: 400),
+          child: Row(children: [
+            LiveDot(color: MB.accent, size: 6),
+            const SizedBox(width: 4),
+            Text(busy ? 'Working' : 'Watching', style: TextStyle(color: MB.quiet(context), fontSize: 13)),
           ]),
-          const SizedBox(height: 12),
-          child,
-        ]),
+        ),
+        const SizedBox(width: 8),
+        IconButton(tooltip: 'Settings', onPressed: onSettings, icon: const Icon(Icons.tune_rounded)),
+      ]),
+    );
+  }
+}
+
+class _BusyPill extends StatelessWidget {
+  const _BusyPill({required this.visible, required this.label});
+
+  final bool visible;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = dark ? MB.ink : Colors.white;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 24,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedSlide(
+          offset: visible ? Offset.zero : const Offset(0, 1.6),
+          duration: const Duration(milliseconds: 380),
+          curve: ease,
+          child: AnimatedOpacity(
+            opacity: visible ? 1 : 0,
+            duration: const Duration(milliseconds: 260),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 10, 18, 10),
+                decoration: BoxDecoration(
+                  color: dark ? const Color(0xFFEDEEEA) : MB.ink,
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 24, offset: const Offset(0, 8))],
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  MothLogo(size: 20, ink: fg, busy: visible),
+                  const SizedBox(width: 10),
+                  Text('$label…', style: TextStyle(color: fg, fontWeight: FontWeight.w500)),
+                ]),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _SpaceCard extends StatelessWidget {
-  const _SpaceCard({required this.status, required this.onAutopilot});
+/// A rounded surface with a hairline border.
+class Panel extends StatelessWidget {
+  const Panel({super.key, required this.child, this.padding = const EdgeInsets.all(24), this.tint});
+
+  final Widget child;
+  final EdgeInsets padding;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: tint ?? MB.cardColor(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: MB.line(context)),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _Dashboard extends StatelessWidget {
+  const _Dashboard({
+    super.key,
+    required this.status,
+    required this.busy,
+    required this.onScan,
+    required this.onPutAway,
+    required this.onWake,
+    required this.onConfig,
+  });
+
+  final Status status;
+  final bool busy;
+  final VoidCallback onScan;
+  final ValueChanged<List<Candidate>> onPutAway;
+  final ValueChanged<MothballedProject> onWake;
+  final ValueChanged<MothballConfig> onConfig;
+
+  @override
+  Widget build(BuildContext context) {
+    final st = status;
+    var i = 0;
+    Widget staggered(Widget w) => Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Appear(delay: Duration(milliseconds: 90 * i++), child: w),
+        );
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 96),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (Platform.isMacOS && !st.access.fullDisk) staggered(AccessReminder(access: st.access, onCheck: onScan)),
+              staggered(_SpacePanel(status: st, onAutopilot: (v) => onConfig(st.config.copyWith(autopilot: v)))),
+              staggered(_IdlePanel(scan: st.lastScan, idleDays: st.config.idleDays, scanning: busy, onScan: onScan, onPutAway: onPutAway)),
+              if (st.mothballed.isNotEmpty) staggered(_MothballedPanel(projects: st.mothballed, onWake: onWake)),
+              if (st.events.isNotEmpty) staggered(_ActivityPanel(events: st.events)),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SpacePanel extends StatelessWidget {
+  const _SpacePanel({required this.status, required this.onAutopilot});
 
   final Status status;
   final ValueChanged<bool> onAutopilot;
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final quiet = Theme.of(context).colorScheme.onSurfaceVariant;
-    final below = status.config.autopilot && status.freeBytes < status.targetBytes;
-    return _Section(
-      title: 'Free space',
+    final st = status;
+    final quiet = MB.quiet(context);
+    final reclaim = st.lastScan?.idleBytes ?? 0;
+    final gb = st.freeBytes / (1 << 30);
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(28, 26, 28, 26),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(humanBytes(status.freeBytes), style: t.displaySmall?.copyWith(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(
-          status.config.autopilot
-              ? (below ? 'Below your ${status.config.targetFreeGB} GB target' : 'Keeping at least ${status.config.targetFreeGB} GB free')
-              : 'Autopilot is off',
-          style: t.bodyMedium?.copyWith(color: quiet),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('FREE SPACE', style: TextStyle(fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: quiet)),
+              const SizedBox(height: 6),
+              Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+                CountUp(
+                  value: gb,
+                  format: (v) => v >= 100 ? v.toStringAsFixed(0) : v.toStringAsFixed(1),
+                  style: MB.display(context, 84),
+                ),
+                const SizedBox(width: 10),
+                Text('GB', style: MB.display(context, 34, color: quiet)),
+              ]),
+            ]),
+          ),
+          _AutopilotToggle(config: st.config, onChanged: onAutopilot),
+        ]),
+        const SizedBox(height: 22),
+        _SpaceBar(free: st.freeBytes, reclaim: reclaim, target: st.targetBytes, showTarget: st.config.autopilot),
+        const SizedBox(height: 14),
+        Wrap(spacing: 20, runSpacing: 8, children: [
+          _Legend(color: MB.accent, label: 'Free now'),
+          if (reclaim > 0) _Legend(color: MB.accent, striped: true, label: '${humanBytes(reclaim)} you can get back'),
+          if (st.waitingBytes > 0) _Legend(color: quiet, label: '${humanBytes(st.waitingBytes)} waiting in the Trash'),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _AutopilotToggle extends StatelessWidget {
+  const _AutopilotToggle({required this.config, required this.onChanged});
+
+  final MothballConfig config;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final on = config.autopilot;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: ease,
+      padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: on ? MB.accent.withValues(alpha: 0.10) : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: on ? MB.accent.withValues(alpha: 0.35) : MB.line(context)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            if (on) ...[LiveDot(color: MB.accent, size: 6), const SizedBox(width: 2)],
+            const Text('Autopilot', style: TextStyle(fontWeight: FontWeight.w600)),
+          ]),
+          const SizedBox(height: 2),
+          Text(on ? 'Keeping ${config.targetFreeGB} GB free' : 'Off', style: TextStyle(fontSize: 13, color: MB.quiet(context))),
+        ]),
+        const SizedBox(width: 12),
+        Switch(value: on, onChanged: onChanged),
+      ]),
+    );
+  }
+}
+
+/// Free space, plus what putting idle output away would add, against the target.
+class _SpaceBar extends StatelessWidget {
+  const _SpaceBar({required this.free, required this.reclaim, required this.target, required this.showTarget});
+
+  final int free;
+  final int reclaim;
+  final int target;
+  final bool showTarget;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = math.max((free + reclaim).toDouble(), target * 1.25).clamp(1, double.infinity);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: calm(context) ? Duration.zero : const Duration(milliseconds: 1300),
+      curve: ease,
+      builder: (context, t, _) => LayoutBuilder(builder: (context, box) {
+        final w = box.maxWidth;
+        final freeW = w * (free / scale) * t;
+        final reclaimW = w * (reclaim / scale) * t;
+        final targetX = w * (target / scale);
+        return SizedBox(
+          height: 46,
+          child: Stack(clipBehavior: Clip.none, children: [
+            Positioned(
+              top: 8,
+              left: 0,
+              right: 0,
+              height: 14,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: MB.line(context), borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              left: 0,
+              width: freeW + reclaimW,
+              height: 14,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CustomPaint(painter: _Stripes(MB.accent, solidWidth: freeW)),
+              ),
+            ),
+            if (showTarget) ...[
+              Positioned(
+                left: targetX - 1,
+                top: 0,
+                width: 2,
+                height: 30,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface, borderRadius: BorderRadius.circular(1)),
+                ),
+              ),
+              Positioned(
+                left: targetX - 60,
+                width: 120,
+                top: 32,
+                child: Text('target ${humanBytes(target)}',
+                    textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: MB.quiet(context))),
+              ),
+            ],
+          ]),
+        );
+      }),
+    );
+  }
+}
+
+class _Stripes extends CustomPainter {
+  _Stripes(this.color, {required this.solidWidth});
+
+  final Color color;
+  final double solidWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Rect.fromLTWH(0, 0, solidWidth, size.height), Paint()..color = color);
+    final rest = Rect.fromLTWH(solidWidth, 0, size.width - solidWidth, size.height);
+    canvas.save();
+    canvas.clipRect(rest);
+    canvas.drawRect(rest, Paint()..color = color.withValues(alpha: 0.18));
+    final p = Paint()
+      ..color = color.withValues(alpha: 0.55)
+      ..strokeWidth = 3;
+    for (var x = solidWidth - size.height; x < size.width; x += 8) {
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), p);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_Stripes old) => old.solidWidth != solidWidth || old.color != color;
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend({required this.color, required this.label, this.striped = false});
+
+  final Color color;
+  final String label;
+  final bool striped;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: SizedBox(
+          width: 12,
+          height: 12,
+          child: striped ? CustomPaint(painter: _Stripes(color, solidWidth: 0)) : ColoredBox(color: color),
         ),
-        if (status.waitingBytes > 0) ...[
-          const SizedBox(height: 4),
-          Text('${humanBytes(status.waitingBytes)} from Mothball is waiting in the Trash',
-              style: t.bodyMedium?.copyWith(color: quiet)),
-        ],
-        const SizedBox(height: 12),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Autopilot'),
-          subtitle: const Text('Put away output from idle projects when space runs low'),
-          value: status.config.autopilot,
-          onChanged: onAutopilot,
+      ),
+      const SizedBox(width: 8),
+      Text(label, style: TextStyle(fontSize: 13, color: MB.quiet(context))),
+    ]);
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.subtitle, this.trailing});
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: MB.display(context, 34)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(subtitle!, style: TextStyle(color: MB.quiet(context))),
+          ],
+        ]),
+      ),
+      if (trailing != null) trailing!,
+    ]);
+  }
+}
+
+class _IdlePanel extends StatelessWidget {
+  const _IdlePanel({required this.scan, required this.idleDays, required this.scanning, required this.onScan, required this.onPutAway});
+
+  final ScanSummary? scan;
+  final int idleDays;
+  final bool scanning;
+  final VoidCallback onScan;
+  final ValueChanged<List<Candidate>> onPutAway;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = scan;
+    final largest = s == null || s.idle.isEmpty ? 1 : s.idle.map((c) => c.bytes).reduce(math.max);
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _SectionHeader(
+          title: 'Idle projects',
+          subtitle: s == null
+              ? 'Not scanned yet'
+              : s.idle.isEmpty
+                  ? 'Nothing untouched for $idleDays+ days. ${s.projects} projects checked.'
+                  : 'Untouched for $idleDays+ days · ${humanBytes(s.idleBytes)} of build output in ${s.idle.length} folders',
+          trailing: TextButton.icon(
+            onPressed: scanning ? null : onScan,
+            icon: Spin(spinning: scanning, child: const Icon(Icons.refresh_rounded, size: 18)),
+            label: const Text('Scan'),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 360),
+          curve: ease,
+          alignment: Alignment.topCenter,
+          child: s == null || s.idle.isEmpty
+              ? const SizedBox(height: 8)
+              : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  const SizedBox(height: 18),
+                  for (final (n, c) in s.idle.take(50).indexed)
+                    Appear(
+                      key: ValueKey(c.path),
+                      delay: Duration(milliseconds: 260 + 45 * math.min(n, 12)),
+                      offset: 8,
+                      child: _IdleRow(c: c, share: c.bytes / largest, onPutAway: () => onPutAway([c])),
+                    ),
+                  if (s.idle.length > 50)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('and ${s.idle.length - 50} more', style: TextStyle(color: MB.quiet(context))),
+                    ),
+                  const SizedBox(height: 18),
+                  Row(children: [
+                    FilledButton.icon(
+                      onPressed: () => onPutAway(s.idle),
+                      icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                      label: Text('Put away all ${humanBytes(s.idleBytes)}'),
+                    ),
+                    const SizedBox(width: 14),
+                    Flexible(
+                      child: Text('Moves to the Trash. Your code stays put.',
+                          style: TextStyle(fontSize: 13, color: MB.quiet(context))),
+                    ),
+                  ]),
+                ]),
         ),
       ]),
     );
   }
 }
 
-class _IdleCard extends StatelessWidget {
-  const _IdleCard({required this.scan, required this.idleDays, required this.onScan, required this.onPutAway});
+class _IdleRow extends StatelessWidget {
+  const _IdleRow({required this.c, required this.share, required this.onPutAway});
 
-  final ScanSummary? scan;
-  final int idleDays;
-  final VoidCallback onScan;
-  final ValueChanged<List<Candidate>> onPutAway;
+  final Candidate c;
+  final double share;
+  final VoidCallback onPutAway;
 
   @override
   Widget build(BuildContext context) {
-    final quiet = Theme.of(context).colorScheme.onSurfaceVariant;
-    final s = scan;
-    return _Section(
-      title: 'Idle $idleDays+ days',
-      trailing: TextButton.icon(onPressed: onScan, icon: const Icon(Icons.refresh, size: 18), label: const Text('Scan')),
-      child: s == null
-          ? Text('Not scanned yet.', style: TextStyle(color: quiet))
-          : s.idle.isEmpty
-              ? Text('Nothing to put away. ${s.projects} projects checked.', style: TextStyle(color: quiet))
-              : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Text('${humanBytes(s.idleBytes)} of build output in ${s.idle.length} folders',
-                      style: Theme.of(context).textTheme.bodyLarge),
-                  const SizedBox(height: 8),
-                  for (final c in s.idle.take(50))
-                    ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(_shortPath(c.path, c.project), overflow: TextOverflow.ellipsis),
-                      subtitle: Text('${c.pack} · idle ${c.idleDays} days'),
-                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Text(humanBytes(c.bytes)),
-                        IconButton(
-                          tooltip: 'Put away',
-                          icon: const Icon(Icons.inventory_2_outlined, size: 20),
-                          onPressed: () => onPutAway([c]),
-                        ),
-                      ]),
-                    ),
-                  if (s.idle.length > 50)
-                    Text('and ${s.idle.length - 50} more', style: TextStyle(color: quiet)),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FilledButton(onPressed: () => onPutAway(s.idle), child: Text('Put away all ${humanBytes(s.idleBytes)}')),
-                  ),
-                ]),
+    final quiet = MB.quiet(context);
+    return Hoverable(
+      builder: (context, hover) => AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+        decoration: BoxDecoration(
+          color: hover ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(
+                  child: Text(_projectLabel(c.project),
+                      overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+                const SizedBox(width: 8),
+                _Chip(_outputLabel(c)),
+              ]),
+              const SizedBox(height: 4),
+              Text('${c.pack} · idle ${c.idleDays} days', style: TextStyle(fontSize: 13, color: quiet)),
+            ]),
+          ),
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 120,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text(humanBytes(c.bytes), style: const TextStyle(fontWeight: FontWeight.w500, fontFeatures: [FontFeature.tabularFigures()])),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: SizedBox(
+                  height: 4,
+                  child: Stack(children: [
+                    Positioned.fill(child: ColoredBox(color: MB.line(context))),
+                    FractionallySizedBox(widthFactor: share.clamp(0.04, 1.0), child: const ColoredBox(color: MB.accent)),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          AnimatedOpacity(
+            opacity: hover ? 1 : 0.45,
+            duration: const Duration(milliseconds: 180),
+            child: IconButton(tooltip: 'Put away', onPressed: onPutAway, icon: const Icon(Icons.inventory_2_outlined, size: 20)),
+          ),
+        ]),
+      ),
     );
   }
 }
 
-class _MothballedCard extends StatelessWidget {
-  const _MothballedCard({required this.projects, required this.onWake});
+class _Chip extends StatelessWidget {
+  const _Chip(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(text, style: TextStyle(fontSize: 12, color: MB.quiet(context), fontWeight: FontWeight.w500)),
+    );
+  }
+}
+
+class _Code extends StatelessWidget {
+  const _Code(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(text, style: const TextStyle(fontFamily: 'Menlo', fontSize: 13)),
+    );
+  }
+}
+
+class _MothballedPanel extends StatelessWidget {
+  const _MothballedPanel({required this.projects, required this.onWake});
 
   final List<MothballedProject> projects;
   final ValueChanged<MothballedProject> onWake;
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: 'Mothballed',
-      child: Column(children: [
-        for (final p in projects)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(_name(p.path)),
-            subtitle: Text(p.returned ? "You're back. Wake it to rebuild." : '${humanBytes(p.bytes)} put away'),
-            trailing: p.returned
-                ? FilledButton(onPressed: () => onWake(p), child: const Text('Wake'))
-                : OutlinedButton(onPressed: () => onWake(p), child: const Text('Wake')),
-          ),
+    final total = projects.fold<int>(0, (s, p) => s + p.bytes);
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(28, 26, 28, 22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _SectionHeader(title: 'Mothballed', subtitle: '${projects.length} projects resting · ${humanBytes(total)} put away'),
+        const SizedBox(height: 14),
+        for (final p in projects) _MothballedRow(p: p, onWake: () => onWake(p)),
       ]),
     );
   }
 }
 
-class _EventsCard extends StatelessWidget {
-  const _EventsCard({required this.events});
+class _MothballedRow extends StatelessWidget {
+  const _MothballedRow({required this.p, required this.onWake});
+
+  final MothballedProject p;
+  final VoidCallback onWake;
+
+  @override
+  Widget build(BuildContext context) {
+    final quiet = MB.quiet(context);
+    final row = Row(children: [
+      MothLogo(size: 26, alive: p.returned, ink: p.returned ? null : quiet),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(_name(p.path), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          const SizedBox(height: 2),
+          Text(
+            p.returned ? "You're back on this one. Wake it to rebuild." : '${humanBytes(p.bytes)} put away',
+            style: TextStyle(fontSize: 13, color: p.returned ? MB.accentOn(context) : quiet),
+          ),
+        ]),
+      ),
+      p.returned
+          ? FilledButton(onPressed: onWake, child: const Text('Wake'))
+          : OutlinedButton(onPressed: onWake, child: const Text('Wake')),
+    ]);
+    if (!p.returned) {
+      return Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: row);
+    }
+    return Pulse(
+      period: const Duration(milliseconds: 2400),
+      builder: (context, t) => Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        decoration: BoxDecoration(
+          color: MB.accent.withValues(alpha: 0.06 + 0.05 * t),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: MB.accent.withValues(alpha: 0.18 + 0.2 * t)),
+        ),
+        child: row,
+      ),
+    );
+  }
+}
+
+class _ActivityPanel extends StatelessWidget {
+  const _ActivityPanel({required this.events});
 
   final List<ServiceEvent> events;
 
   @override
   Widget build(BuildContext context) {
-    final quiet = Theme.of(context).colorScheme.onSurfaceVariant;
-    return _Section(
-      title: 'Recent activity',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        for (final e in events.reversed.take(8))
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              '${e.message}${e.bytes > 0 ? ' (${humanBytes(e.bytes)})' : ''}',
-              style: TextStyle(color: e.kind == 'error' ? Theme.of(context).colorScheme.error : quiet),
-            ),
+    final quiet = MB.quiet(context);
+    final shown = events.reversed.take(8).toList();
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(28, 26, 28, 22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const _SectionHeader(title: 'Lately'),
+        const SizedBox(height: 14),
+        for (final (i, e) in shown.indexed)
+          IntrinsicHeight(
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              SizedBox(
+                width: 18,
+                child: Column(children: [
+                  const SizedBox(height: 6),
+                  Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: e.kind == 'error' ? Theme.of(context).colorScheme.error : (i == 0 ? MB.accent : MB.line(context)),
+                    ),
+                  ),
+                  if (i < shown.length - 1) Expanded(child: Container(width: 1.5, color: MB.line(context))),
+                ]),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(
+                      e.bytes > 0 ? '${_headline(e)} ${humanBytes(e.bytes)}' : _headline(e),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, color: e.kind == 'error' ? Theme.of(context).colorScheme.error : null),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(e.message, style: TextStyle(fontSize: 13, color: quiet)),
+                  ]),
+                ),
+              ),
+              if (e.at != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(_when(e.at!), style: TextStyle(fontSize: 12, color: quiet)),
+                ),
+            ]),
           ),
       ]),
     );
   }
+
+  static String _headline(ServiceEvent e) => switch (e.kind) {
+        'autopilot' => 'Autopilot put away',
+        'emptied' => 'Emptied',
+        'error' => 'Something went wrong',
+        _ => e.kind,
+      };
+
+  static String _when(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inHours < 1) return '${d.inMinutes}m ago';
+    if (d.inDays < 1) return '${d.inHours}h ago';
+    if (d.inDays < 30) return '${d.inDays}d ago';
+    return '${t.day}/${t.month}/${t.year}';
+  }
 }
 
 class _Offline extends StatefulWidget {
-  const _Offline({required this.reason, required this.onRetry});
+  const _Offline({super.key, required this.reason, required this.onRetry});
 
   final String reason;
   final VoidCallback onRetry;
@@ -437,27 +937,36 @@ class _OfflineState extends State<_Offline> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const MothLogo(size: 72),
-            const SizedBox(height: 20),
-            Text(widget.reason, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            const Text(
-              'Mothball does its work in a small background service, so autopilot keeps running when this window is closed.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            FilledButton(onPressed: _starting ? null : _start, child: Text(_starting ? 'Starting…' : 'Start Mothball')),
-            TextButton(onPressed: widget.onRetry, child: const Text('Try again')),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
-          ]),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Appear(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              MothLogo(size: 84, alive: true, busy: _starting),
+              const SizedBox(height: 28),
+              Text('Mothball is resting', textAlign: TextAlign.center, style: MB.display(context, 46)),
+              const SizedBox(height: 12),
+              Text(
+                'Its background service is not running. Mothball does its work there, so autopilot keeps going even when this window is closed.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: MB.quiet(context), fontSize: 15, height: 1.5),
+              ),
+              const SizedBox(height: 28),
+              FilledButton(onPressed: _starting ? null : _start, child: Text(_starting ? 'Starting…' : 'Start Mothball')),
+              const SizedBox(height: 6),
+              TextButton(onPressed: widget.onRetry, child: const Text('Try again')),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 240),
+                child: _error == null
+                    ? const SizedBox(width: double.infinity)
+                    : Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                      ),
+              ),
+            ]),
+          ),
         ),
       ),
     );
