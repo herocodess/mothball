@@ -14,7 +14,11 @@ const _fdaSettings = 'x-apple.systempreferences:com.apple.preference.security?Pr
 Future<void> openFullDiskSettings() => Process.run('open', [_fdaSettings]);
 
 /// Shows the program that needs access in Finder, ready to drag into the list.
-Future<void> revealInFinder(String path) => Process.run('open', ['-R', path]);
+/// Inside an app bundle that is the bundle, so the list shows Mothball's icon.
+Future<void> revealInFinder(String path) {
+  final i = path.indexOf('.app/Contents/');
+  return Process.run('open', ['-R', i > 0 ? path.substring(0, i + 4) : path]);
+}
 
 String _folderNames(List<String> paths) {
   final names = paths.take(3).map((p) => p.split('/').where((s) => s.isNotEmpty).last).toList();
