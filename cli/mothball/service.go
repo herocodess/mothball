@@ -148,7 +148,7 @@ func cmdStatus(args []string, stdout, stderr io.Writer) int {
 			folders(len(st.LastScan.Idle)), st.LastScan.At.Format("2 Jan 15:04"))
 	}
 	if n := len(st.Mothballed); n > 0 {
-		fmt.Fprintf(stdout, "Mothballed:   %d projects (mothball wake to list)\n", n)
+		fmt.Fprintf(stdout, "Mothballed:   %s (mothball wake to list)\n", plural(n, "project"))
 	}
 	return 0
 }
@@ -299,4 +299,11 @@ func uninstallService(stdout, stderr io.Writer) int {
 func xmlEscape(s string) string {
 	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;", "'", "&apos;")
 	return r.Replace(s)
+}
+
+func plural(n int, word string) string {
+	if n == 1 {
+		return "1 " + word
+	}
+	return fmt.Sprintf("%d %ss", n, word)
 }
