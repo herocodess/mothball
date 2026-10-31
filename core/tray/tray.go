@@ -88,10 +88,10 @@ func ready(s *service.Service, openApp func()) {
 			idle.SetTitle("Scanning your projects…")
 		case st.LastScan == nil:
 			idle.SetTitle("Not scanned yet")
-		case len(st.LastScan.Idle) == 0:
+		case st.LastScan.IdleBytes+st.LastScan.CacheBytes == 0:
 			idle.SetTitle("Nothing idle to put away")
 		default:
-			idle.SetTitle(fmt.Sprintf("%s can be put away", human(st.LastScan.IdleBytes)))
+			idle.SetTitle(fmt.Sprintf("%s can be freed", human(st.LastScan.IdleBytes+st.LastScan.CacheBytes)))
 		}
 
 		var returned []string

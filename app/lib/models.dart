@@ -37,20 +37,65 @@ class Candidate {
   final String wake;
 }
 
+class CacheInfo {
+  CacheInfo({required this.id, required this.name, required this.policy, required this.bytes, required this.how, required this.blocked});
+
+  factory CacheInfo.fromJson(Map<String, dynamic> j) => CacheInfo(
+        id: _str(j['id']),
+        name: _str(j['name']),
+        policy: _str(j['policy']),
+        bytes: _int(j['bytes']),
+        how: _str(j['how']),
+        blocked: _str(j['blocked']),
+      );
+
+  final String id;
+  final String name;
+  final String policy; // auto, ask or report
+  final int bytes;
+  final String how;
+  final String blocked;
+
+  bool get canClean => policy != 'report' && blocked.isEmpty;
+}
+
+class CacheResult {
+  CacheResult({required this.id, required this.name, required this.bytes, required this.error});
+
+  factory CacheResult.fromJson(Map<String, dynamic> j) =>
+      CacheResult(id: _str(j['id']), name: _str(j['name']), bytes: _int(j['bytes']), error: _str(j['error']));
+
+  final String id;
+  final String name;
+  final int bytes;
+  final String error;
+}
+
 class ScanSummary {
-  ScanSummary({required this.at, required this.projects, required this.idle, required this.idleBytes});
+  ScanSummary({
+    required this.at,
+    required this.projects,
+    required this.idle,
+    required this.idleBytes,
+    this.caches = const [],
+    this.cacheBytes = 0,
+  });
 
   factory ScanSummary.fromJson(Map<String, dynamic> j) => ScanSummary(
         at: _time(j['at']),
         projects: _int(j['projects']),
         idle: _list(j['idle']).map((e) => Candidate.fromJson(e as Map<String, dynamic>)).toList(),
         idleBytes: _int(j['idleBytes']),
+        caches: _list(j['caches']).map((e) => CacheInfo.fromJson(e as Map<String, dynamic>)).toList(),
+        cacheBytes: _int(j['cacheBytes']),
       );
 
   final DateTime? at;
   final int projects;
   final List<Candidate> idle;
   final int idleBytes;
+  final List<CacheInfo> caches;
+  final int cacheBytes;
 }
 
 class MothballedProject {

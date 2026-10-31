@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/herocodess/mothball/core/caches"
 	"github.com/herocodess/mothball/core/config"
 	"github.com/herocodess/mothball/core/pack"
 	"github.com/herocodess/mothball/rules"
@@ -213,5 +215,41 @@ func TestStatusDoesNotWaitForWork(t *testing.T) {
 	case <-done:
 	case <-time.After(2 * time.Second):
 		t.Fatal("status blocked behind the work lock")
+	}
+}
+
+// With no idle projects, autopilot falls back to caches that only cost a
+// re-download, and never touches ones that need asking.
+func TestAutopilotFallsBackToAutoCaches(t *testing.T) {
+	s, home := newService(t, 1<<30-1500)
+	c := config.Default()
+	c.Autopilot, c.TargetFreeGB = true, 1
+	_, _ = s.SetConfig(c)
+	npm := filepath.Join(home, ".npm", "_cacache")
+	gomod := filepath.Join(home, "go", "pkg", "mod")
+	for _, d := range []string{npm, gomod} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(d, "blob"), make([]byte, 4000), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var ran []string
+	kit := caches.DefaultKit(home, nil)
+	kit.GOOS = "linux"
+	kit.LookTool = func(n string) (string, error) { return "/bin/" + n, nil }
+	kit.Running = func([]string) string { return "" }
+	kit.Run = func(_ context.Context, bin string, args []string) error {
+		ran = append(ran, filepath.Base(bin))
+		if filepath.Base(bin) == "npm" {
+			return os.RemoveAll(npm)
+		}
+		return nil
+	}
+	s.Caches = kit
+	s.Tick()
+	if len(ran) != 1 || ran[0] != "npm" {
+		t.Fatalf("ran %v, want only npm (go modules need asking)", ran)
 	}
 }

@@ -35,6 +35,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return cmdScan(args[1:], stdout, stderr)
 	case "clean":
 		return cmdClean(args[1:], stdin, stdout, stderr)
+	case "caches":
+		return cmdCaches(args[1:], stdin, stdout, stderr)
 	case "wake":
 		return cmdWake(args[1:], stdin, stdout, stderr)
 	case "empty":
@@ -62,6 +64,8 @@ func usage(w io.Writer) {
 Usage:
   mothball scan [folders...]    show build output in idle projects (reads only)
   mothball clean [folders...]   move that output to the Trash, after asking
+  mothball caches               show shared developer caches and their sizes
+  mothball caches clean ...     clean caches by id, or --safe for all safe ones
   mothball wake [project]       list mothballed projects, or restore one
   mothball empty                permanently empty what Mothball put in the Trash
   mothball status               free space, autopilot and what is reclaimable

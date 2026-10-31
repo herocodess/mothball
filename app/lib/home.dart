@@ -124,6 +124,42 @@ class _HomeScreenState extends State<HomeScreen> {
     await _refresh();
   }
 
+  Future<void> _cleanCaches(List<CacheInfo> items) async {
+    final total = items.fold<int>(0, (s, c) => s + c.bytes);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Clean ${humanBytes(total)} of caches?'),
+        content: SizedBox(
+          width: 460,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (final c in items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${c.name} · ${humanBytes(c.bytes)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(c.how, style: TextStyle(fontSize: 13, color: MB.quiet(ctx))),
+                ]),
+              ),
+          ]),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Clean')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final res = await _run('Cleaning caches', () => widget.api.cleanCaches(items.map((c) => c.id).toList()));
+    if (res == null) return;
+    final freed = res.fold<int>(0, (s, r) => s + r.bytes);
+    final failed = res.where((r) => r.error.isNotEmpty).toList();
+    _toast(failed.isEmpty ? 'Cleaned ${humanBytes(freed)}.' : 'Cleaned ${humanBytes(freed)}. ${failed.first.name}: ${failed.first.error}');
+    await _refresh();
+  }
+
   Future<void> _wake(MothballedProject p) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -179,6 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onScan: _scan,
         onPutAway: _putAway,
         onWake: _wake,
+        onCleanCaches: _cleanCaches,
         onConfig: _saveConfig,
       );
     }
@@ -332,6 +369,7 @@ class _Dashboard extends StatelessWidget {
     required this.onScan,
     required this.onPutAway,
     required this.onWake,
+    required this.onCleanCaches,
     required this.onConfig,
   });
 
@@ -340,6 +378,7 @@ class _Dashboard extends StatelessWidget {
   final VoidCallback onScan;
   final ValueChanged<List<Candidate>> onPutAway;
   final ValueChanged<MothballedProject> onWake;
+  final ValueChanged<List<CacheInfo>> onCleanCaches;
   final ValueChanged<MothballConfig> onConfig;
 
   @override
@@ -360,6 +399,8 @@ class _Dashboard extends StatelessWidget {
               if (Platform.isMacOS && !st.access.fullDisk) staggered(AccessReminder(access: st.access, onCheck: onScan)),
               staggered(_SpacePanel(status: st, onAutopilot: (v) => onConfig(st.config.copyWith(autopilot: v)))),
               staggered(_IdlePanel(scan: st.lastScan, idleDays: st.config.idleDays, scanning: busy, onScan: onScan, onPutAway: onPutAway)),
+              if ((st.lastScan?.caches ?? const []).isNotEmpty)
+                staggered(_CachesPanel(caches: st.lastScan!.caches, onClean: onCleanCaches)),
               if (st.mothballed.isNotEmpty) staggered(_MothballedPanel(projects: st.mothballed, onWake: onWake)),
               if (st.events.isNotEmpty) staggered(_ActivityPanel(events: st.events)),
             ]),
@@ -380,7 +421,7 @@ class _SpacePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = status;
     final quiet = MB.quiet(context);
-    final reclaim = st.lastScan?.idleBytes ?? 0;
+    final reclaim = (st.lastScan?.idleBytes ?? 0) + (st.lastScan?.cacheBytes ?? 0);
     final gb = st.freeBytes / (1 << 30);
     return Panel(
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 26),
@@ -762,6 +803,134 @@ class _Code extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(text, style: const TextStyle(fontFamily: 'Menlo', fontSize: 13)),
+    );
+  }
+}
+
+class _CachesPanel extends StatelessWidget {
+  const _CachesPanel({required this.caches, required this.onClean});
+
+  final List<CacheInfo> caches;
+  final ValueChanged<List<CacheInfo>> onClean;
+
+  @override
+  Widget build(BuildContext context) {
+    final quiet = MB.quiet(context);
+    final safe = caches.where((c) => c.policy == 'auto' && c.canClean).toList();
+    final safeBytes = safe.fold<int>(0, (s, c) => s + c.bytes);
+    final total = caches.where((c) => c.canClean).fold<int>(0, (s, c) => s + c.bytes);
+    final largest = caches.map((c) => c.bytes).fold<int>(1, math.max);
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _SectionHeader(
+          title: 'Tool caches',
+          subtitle: '${humanBytes(total)} can be cleaned · everything here downloads or rebuilds again when needed',
+        ),
+        const SizedBox(height: 18),
+        for (final (n, c) in caches.indexed)
+          Appear(
+            key: ValueKey(c.id),
+            delay: Duration(milliseconds: 200 + 40 * math.min(n, 12)),
+            offset: 8,
+            child: Hoverable(
+              builder: (context, hover) => AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                decoration: BoxDecoration(
+                  color: hover ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Flexible(
+                          child: Text(c.name,
+                              overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        ),
+                        const SizedBox(width: 8),
+                        if (c.policy == 'auto') const _Tag('safe', MB.accent),
+                        if (c.policy == 'ask') const _Tag('slow to re-download', Color(0xFFB7791F)),
+                        if (c.policy == 'report') _Tag('info only', quiet),
+                      ]),
+                      const SizedBox(height: 4),
+                      Text(c.blocked.isNotEmpty ? 'Waiting: ${c.blocked}' : c.how,
+                          maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: quiet)),
+                    ]),
+                  ),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: 120,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text(humanBytes(c.bytes), style: const TextStyle(fontWeight: FontWeight.w500, fontFeatures: [FontFeature.tabularFigures()])),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        height: 4,
+                        alignment: Alignment.centerRight,
+                        decoration: BoxDecoration(color: MB.line(context), borderRadius: BorderRadius.circular(3)),
+                        child: FractionallySizedBox(
+                          widthFactor: (c.bytes / largest).clamp(0.04, 1.0),
+                          heightFactor: 1,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: c.canClean ? MB.accent : MB.line(context),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 48,
+                    child: c.canClean
+                        ? AnimatedOpacity(
+                            opacity: hover ? 1 : 0.45,
+                            duration: const Duration(milliseconds: 180),
+                            child: IconButton(
+                                tooltip: 'Clean', onPressed: () => onClean([c]), icon: const Icon(Icons.cleaning_services_outlined, size: 20)),
+                          )
+                        : null,
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        if (safe.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Row(children: [
+            FilledButton.icon(
+              onPressed: () => onClean(safe),
+              icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+              label: Text('Clean safe caches ${humanBytes(safeBytes)}'),
+            ),
+            const SizedBox(width: 14),
+            Flexible(
+              child: Text('Autopilot uses these too when space runs low.', style: TextStyle(fontSize: 13, color: quiet)),
+            ),
+          ]),
+        ],
+      ]),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag(this.text, this.color);
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+      child: Text(text, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: color)),
     );
   }
 }

@@ -106,6 +106,16 @@ func (s *Service) Handler(token, host string) http.Handler {
 		}
 		reply(w, res, err)
 	})
+	mux.HandleFunc("POST /v1/caches/clean", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			IDs []string `json:"ids"`
+		}
+		if !decode(w, r, &req) {
+			return
+		}
+		res, err := s.CleanCaches(req.IDs)
+		reply(w, res, err)
+	})
 	mux.HandleFunc("POST /v1/wake", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Project string `json:"project"`

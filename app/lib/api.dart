@@ -74,6 +74,11 @@ class MothballApi {
     return res is List ? res.map((e) => CleanResult.fromJson(e as Map<String, dynamic>)).toList() : const [];
   }
 
+  Future<List<CacheResult>> cleanCaches(List<String> ids) async {
+    final res = await _call('POST', '/v1/caches/clean', {'ids': ids});
+    return res is List ? res.map((e) => CacheResult.fromJson(e as Map<String, dynamic>)).toList() : const [];
+  }
+
   Future<void> wake(String project) async {
     await _call('POST', '/v1/wake', {'project': project});
   }
