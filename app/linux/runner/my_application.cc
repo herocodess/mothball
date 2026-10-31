@@ -19,9 +19,33 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// The Mothball icon shipped next to the binary (bundle/data/mothball.png),
+// for desktops that do not find it in the icon theme (an AppImage, say).
+static void set_window_icon(GtkWindow* window) {
+  gtk_window_set_icon_name(window, APPLICATION_ID);
+  g_autofree gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
+  if (exe == nullptr) {
+    return;
+  }
+  g_autofree gchar* dir = g_path_get_dirname(exe);
+  g_autofree gchar* icon = g_build_filename(dir, "data", "mothball.png", nullptr);
+  if (g_file_test(icon, G_FILE_TEST_EXISTS)) {
+    gtk_window_set_icon_from_file(window, icon, nullptr);
+  }
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
+
+  // One Mothball at a time: opening it again (from the app menu or the
+  // tray's "Open Mothball") brings the open window forward.
+  GList* windows = gtk_application_get_windows(GTK_APPLICATION(application));
+  if (windows != nullptr) {
+    gtk_window_present(GTK_WINDOW(windows->data));
+    return;
+  }
+
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
@@ -45,14 +69,21 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "mothball");
+    gtk_header_bar_set_title(header_bar, "Mothball");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "mothball");
+    gtk_window_set_title(window, "Mothball");
   }
 
-  gtk_window_set_default_size(window, 1280, 720);
+  gtk_window_set_default_size(window, 1100, 820);
+  gtk_window_set_position(window, GTK_WIN_POS_CENTER);
+  // Keep the window large enough for the layout to stay readable.
+  GdkGeometry hints;
+  hints.min_width = 640;
+  hints.min_height = 560;
+  gtk_window_set_geometry_hints(window, nullptr, &hints, GDK_HINT_MIN_SIZE);
+  set_window_icon(window);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
@@ -62,7 +93,7 @@ static void my_application_activate(GApplication* application) {
   GdkRGBA background_color;
   // Background defaults to black, override it here if necessary, e.g. #00000000
   // for transparent.
-  gdk_rgba_parse(&background_color, "#000000");
+  gdk_rgba_parse(&background_color, "#F5F4EF");  // Mothball's light ground
   fl_view_set_background_color(view, &background_color);
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
@@ -144,5 +175,5 @@ MyApplication* my_application_new() {
 
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID, "flags",
-                                     G_APPLICATION_NON_UNIQUE, nullptr));
+                                     static_cast<GApplicationFlags>(0), nullptr));  // unique: one instance
 }

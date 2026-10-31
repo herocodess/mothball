@@ -1,0 +1,62 @@
+# .deb and .rpm packages, built by scripts/build-linux.sh with nfpm.
+# VERSION, ARCH (amd64 or arm64) and BUNDLE come from the environment.
+name: mothball
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+release: 1
+section: utils
+priority: optional
+maintainer: Hero Momoh <hm@heromomoh.com>
+vendor: Hero Momoh
+homepage: https://github.com/herocodess/mothball
+license: MIT
+description: |-
+  Put idle projects away, get your disk back.
+  Mothball finds build output you can regenerate (node_modules, target, .venv,
+  build and more) in projects you have not touched in a while and moves it to
+  the Trash. It never touches files tracked by git and skips projects with
+  uncommitted work. Includes the desktop app and the mothball command.
+
+overrides:
+  deb:
+    depends:
+      - libgtk-3-0 | libgtk-3-0t64
+  rpm:
+    depends:
+      - gtk3
+
+contents:
+  - src: ${BUNDLE}/
+    dst: /opt/mothball/
+    type: tree
+  - src: /opt/mothball/bin/mothball
+    dst: /usr/bin/mothball
+    type: symlink
+  - src: /opt/mothball/mothball-app
+    dst: /usr/bin/mothball-app
+    type: symlink
+  - src: packaging/linux/dev.mothball.mothball.desktop
+    dst: /usr/share/applications/dev.mothball.mothball.desktop
+  - src: ${METAINFO}
+    dst: /usr/share/metainfo/dev.mothball.mothball.metainfo.xml
+  - src: packaging/linux/icons/16.png
+    dst: /usr/share/icons/hicolor/16x16/apps/dev.mothball.mothball.png
+  - src: packaging/linux/icons/24.png
+    dst: /usr/share/icons/hicolor/24x24/apps/dev.mothball.mothball.png
+  - src: packaging/linux/icons/32.png
+    dst: /usr/share/icons/hicolor/32x32/apps/dev.mothball.mothball.png
+  - src: packaging/linux/icons/48.png
+    dst: /usr/share/icons/hicolor/48x48/apps/dev.mothball.mothball.png
+  - src: packaging/linux/icons/64.png
+    dst: /usr/share/icons/hicolor/64x64/apps/dev.mothball.mothball.png
+  - src: packaging/linux/icons/128.png
+    dst: /usr/share/icons/hicolor/128x128/apps/dev.mothball.mothball.png
+  - src: packaging/linux/icons/256.png
+    dst: /usr/share/icons/hicolor/256x256/apps/dev.mothball.mothball.png
+  - src: packaging/linux/icons/512.png
+    dst: /usr/share/icons/hicolor/512x512/apps/dev.mothball.mothball.png
+
+scripts:
+  postinstall: packaging/linux/postinstall.sh
+  postremove: packaging/linux/postremove.sh

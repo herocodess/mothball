@@ -89,3 +89,16 @@ func mustOld(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 }
+
+func TestDesktopQuote(t *testing.T) {
+	cases := map[string]string{
+		`/opt/mothball/bin/mothball`:     `"/opt/mothball/bin/mothball"`,
+		`/home/a b/Mothball.AppImage`:    `"/home/a b/Mothball.AppImage"`,
+		`/home/x/$weird"name\` + "`.App": `"/home/x/\$weird\"name\\` + "\\`" + `.App"`,
+	}
+	for in, want := range cases {
+		if got := desktopQuote(in); got != want {
+			t.Errorf("desktopQuote(%q) = %s, want %s", in, got, want)
+		}
+	}
+}
