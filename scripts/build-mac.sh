@@ -61,6 +61,10 @@ SIGN=${SIGN:--}
 OPTS=""
 [ "$SIGN" != "-" ] && OPTS="--options runtime"
 echo "Signing with: $( [ "$SIGN" = "-" ] && echo "ad hoc" || echo "$SIGN" )"
+# Inside out: frameworks, the agent, then the app, all with one identity.
+for f in "$APP"/Contents/Frameworks/*.framework "$APP"/Contents/Frameworks/*.dylib; do
+  [ -e "$f" ] && codesign --force $OPTS --timestamp=none --sign "$SIGN" "$f"
+done
 codesign --force $OPTS --timestamp=none --sign "$SIGN" "$AGENT"
 codesign --force $OPTS --timestamp=none --sign "$SIGN" --preserve-metadata=identifier,entitlements,requirements,flags "$APP"
 codesign --verify --deep --strict "$APP"
