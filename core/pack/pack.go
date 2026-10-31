@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -41,6 +42,17 @@ type Output struct {
 type Wake struct {
 	When string `json:"when,omitempty"`
 	Run  string `json:"run"`
+	// Windows replaces Run on Windows, where paths and scripts differ
+	// (.venv\Scripts instead of .venv/bin, mvnw.cmd instead of ./mvnw).
+	Windows string `json:"windows,omitempty"`
+}
+
+// Command is the command to run on this system.
+func (w Wake) Command() string {
+	if runtime.GOOS == "windows" && w.Windows != "" {
+		return w.Windows
+	}
+	return w.Run
 }
 
 // Set is every loaded pack plus an index from detect file name to packs.

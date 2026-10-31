@@ -8,7 +8,7 @@
     { "path": ".cxx", "requireAny": ["Debug", "Release", "RelWithDebInfo", "MinSizeRel"] }
   ],
   "wake": [
-    { "when": "gradlew", "run": "./gradlew help" },
+    { "when": "gradlew", "run": "./gradlew help", "windows": "gradlew.bat help" },
     { "run": "gradle help" }
   ]
 }

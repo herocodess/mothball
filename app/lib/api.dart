@@ -116,15 +116,15 @@ class MothballApi {
 
   /// The service binary shipped inside the app, when there is one.
   /// On macOS it lives in Mothball.app/Contents/Library/LoginItems; on
-  /// Windows and Linux it sits next to the app's executable.
+  /// Windows and Linux it is in a bin folder next to the app's executable.
   static String? bundledService() {
     final exe = File(Platform.resolvedExecutable);
     final dir = exe.parent.path; // Mothball.app/Contents/MacOS on macOS
     final candidates = Platform.isMacOS
         ? ['$dir/../Library/LoginItems/Mothball Agent.app/Contents/MacOS/mothball']
         : Platform.isWindows
-            ? ['$dir\\mothball.exe']
-            : ['$dir/mothball'];
+            ? ['$dir\\bin\\mothball.exe']
+            : ['$dir/bin/mothball'];
     for (final c in candidates) {
       if (File(c).existsSync()) return File(c).absolute.path;
     }
