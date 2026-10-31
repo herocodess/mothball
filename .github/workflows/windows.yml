@@ -175,7 +175,8 @@ jobs:
       - name: Uninstall leaves nothing behind
         run: |
           $dir = "$env:LOCALAPPDATA\Programs\Mothball"
-          $u = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru
+          "PATH before: " + (Get-ItemProperty 'HKCU:\Environment').Path
+          $u = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$env:RUNNER_TEMP\uninstall.log" -PassThru
           $u.WaitForExit()
           # The uninstaller hands over to a copy of itself in %TEMP% (_iu*.tmp);
           # wait until that copy has finished its last step too.
@@ -184,6 +185,8 @@ jobs:
             if (-not $busy -and -not (Test-Path "$dir\Mothball.exe")) { break }
             Start-Sleep 1
           }
+          "PATH after:  " + (Get-ItemProperty 'HKCU:\Environment').Path
+          Get-Content "$env:RUNNER_TEMP\uninstall.log" -ErrorAction SilentlyContinue | Select-Object -Last 25
           function Need($ok, $what) { if ($ok) { "ok    $what" } else { throw "FAIL  $what" } }
           Need (-not (Test-Path "$dir\Mothball.exe")) 'app removed'
           Need (-not (Test-Path "$dir\bin")) 'bin removed'
