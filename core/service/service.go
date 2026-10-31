@@ -4,6 +4,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"os"
 	"sort"
@@ -20,6 +21,7 @@ import (
 	"github.com/herocodess/mothball/core/purge"
 	"github.com/herocodess/mothball/core/scan"
 	"github.com/herocodess/mothball/core/trash"
+	"github.com/herocodess/mothball/core/update"
 	"github.com/herocodess/mothball/core/wake"
 )
 
@@ -36,7 +38,14 @@ type Service struct {
 	Trash       trash.Trasher
 	Now         func() time.Time
 
+	// Update checks for and installs new versions. Nil turns updates off.
+	Update *update.Updater
+	// OnRestart is called after an update is installed: it should relaunch
+	// the app and restart the service so the new version runs.
+	OnRestart func()
+
 	mu       sync.Mutex // one scan, clean or wake at a time
+	moveMu   sync.Mutex // held while files move; an update install waits only for this
 	log      *history.Log
 	scanMu   sync.RWMutex // guards lastScan and scanning; never held during work
 	lastScan *ScanSummary
@@ -48,6 +57,12 @@ type Service struct {
 
 // ErrNotMothballed means the project has nothing put away.
 var ErrNotMothballed = errors.New("project is not mothballed")
+
+// ErrUpdateRequired means a newer release marked this version unsafe to keep
+// moving files; it must update first.
+var ErrUpdateRequired = errors.New("this version of Mothball needs an update before it moves anything")
+
+func (s *Service) blocked() bool { return s.Update != nil && s.Update.Blocked() }
 
 // ScanSummary is the result of the latest scan.
 type ScanSummary struct {
@@ -174,6 +189,7 @@ type Status struct {
 	Scanning     bool           `json:"scanning"`
 	Mothballed   []wake.Project `json:"mothballed"`
 	Events       []Event        `json:"events"`
+	Update       *update.State  `json:"update,omitempty"`
 }
 
 // Status reports the current state without scanning.
@@ -190,7 +206,13 @@ func (s *Service) Status() (Status, error) {
 	s.scanMu.RLock()
 	last, scanning := s.lastScan, s.scanning
 	s.scanMu.RUnlock()
+	var up *update.State
+	if s.Update != nil {
+		st := s.Update.State()
+		up = &st
+	}
 	return Status{
+		Update:       up,
 		Scanning:     scanning,
 		Access:       s.Access(),
 		FreeBytes:    free,
@@ -206,6 +228,9 @@ func (s *Service) Status() (Status, error) {
 // Clean puts away the given idle folders, or every idle folder when paths is
 // empty. Each one is re-checked before it moves.
 func (s *Service) Clean(paths []string) ([]clean.Outcome, error) {
+	if s.blocked() {
+		return nil, ErrUpdateRequired
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c, err := s.Config()
@@ -229,7 +254,9 @@ func (s *Service) Clean(paths []string) ([]clean.Outcome, error) {
 			}
 		}
 	}
+	s.moveMu.Lock()
 	out := clean.Run(plan, c.IdleDays, s.scanner(), s.Trash, s.log, s.Now())
+	s.moveMu.Unlock()
 	_, _ = s.scanLocked()
 	return out, nil
 }
@@ -244,6 +271,9 @@ type CacheResult struct {
 
 // CleanCaches cleans the caches with the given ids, which the user picked.
 func (s *Service) CleanCaches(ids []string) ([]CacheResult, error) {
+	if s.blocked() {
+		return nil, ErrUpdateRequired
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	want := map[string]bool{}
@@ -251,6 +281,8 @@ func (s *Service) CleanCaches(ids []string) ([]CacheResult, error) {
 		want[id] = true
 	}
 	var out []CacheResult
+	s.moveMu.Lock()
+	defer s.moveMu.Unlock()
 	for _, cc := range s.Caches.Survey() {
 		if !want[cc.ID] {
 			continue
@@ -283,6 +315,8 @@ func (s *Service) Wake(project string) error {
 	}
 	for _, p := range wake.Mothballed(entries, s.Packs) {
 		if p.Path == project {
+			s.moveMu.Lock()
+			defer s.moveMu.Unlock()
 			return wake.Run(p, s.log, os.Stdout, os.Stderr)
 		}
 	}
@@ -294,6 +328,9 @@ func (s *Service) Wake(project string) error {
 // covered. Space already waiting in the Trash for auto-empty counts as
 // covered, so autopilot never keeps trashing more while it waits.
 func (s *Service) Tick() {
+	if s.blocked() {
+		return // nothing moves until this version is updated
+	}
 	c, err := s.Config()
 	if err != nil {
 		s.event("error", "could not read settings: "+err.Error(), 0)
@@ -305,7 +342,9 @@ func (s *Service) Tick() {
 		return
 	}
 	if due := purge.Due(entries, c.AutoEmptyDays, s.Now()); len(due) > 0 {
+		s.moveMu.Lock()
 		freed, errs := purge.Run(due, s.log, s.Now())
+		s.moveMu.Unlock()
 		if freed > 0 {
 			s.event("emptied", "Emptied folders Mothball put in the Trash", freed)
 		}
@@ -350,6 +389,7 @@ func (s *Service) Tick() {
 		pick = append(pick, x)
 		picked += x.Bytes
 	}
+	s.moveMu.Lock()
 	var moved int64
 	if len(pick) > 0 {
 		for _, o := range clean.Run(pick, c.IdleDays, s.scanner(), s.Trash, s.log, s.Now()) {
@@ -387,6 +427,7 @@ func (s *Service) Tick() {
 	if moved+fromCaches == 0 {
 		s.event("autopilot", "Free space is below target, but there is nothing idle or cached to put away", 0)
 	}
+	s.moveMu.Unlock()
 	_, _ = s.scanLocked()
 }
 
@@ -410,17 +451,77 @@ func (s *Service) event(kind, msg string, bytes int64) {
 // so an idle service costs almost nothing.
 func (s *Service) Run(stop <-chan struct{}) {
 	lastRefresh := time.Time{}
+	lastCheck := time.Time{}
 	for {
+		c, _ := s.Config()
+		// Check for updates first, so a release that marks this version
+		// unsafe stops autopilot before it runs.
+		if s.Update != nil && !c.SkipUpdateCheck && s.Now().Sub(lastCheck) > 24*time.Hour {
+			lastCheck = s.Now()
+			if st := s.CheckUpdate(); st.Error != "" {
+				lastCheck = s.Now().Add(-23 * time.Hour) // offline: try again in an hour
+			}
+		}
 		s.Tick()
 		if s.Now().Sub(lastRefresh) > 6*time.Hour {
 			_, _ = s.Scan()
 			lastRefresh = s.Now()
 		}
-		c, _ := s.Config()
 		select {
 		case <-stop:
 			return
 		case <-time.After(time.Duration(c.CheckMinutes) * time.Minute):
 		}
 	}
+}
+
+// CheckUpdate looks for a new release now.
+func (s *Service) CheckUpdate() update.State {
+	if s.Update == nil {
+		return update.State{}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	st, _ := s.Update.Check(ctx)
+	if st.Required {
+		s.event("update", "Mothball "+st.Latest+" is required before anything else is put away", 0)
+	}
+	return st
+}
+
+// DownloadUpdate starts downloading the latest release in the background.
+func (s *Service) DownloadUpdate() error {
+	if s.Update == nil {
+		return update.ErrCannotInstall
+	}
+	if !s.Update.State().CanInstall {
+		return update.ErrCannotInstall
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+		defer cancel()
+		if err := s.Update.Download(ctx); err != nil {
+			s.event("error", "Update download failed: "+err.Error(), 0)
+		}
+	}()
+	return nil
+}
+
+// InstallUpdate swaps in the downloaded version, then asks for a restart.
+// It waits for any clean, wake or emptying in progress to finish first.
+func (s *Service) InstallUpdate() error {
+	if s.Update == nil {
+		return update.ErrCannotInstall
+	}
+	// Wait for any move in progress, not for scans: a scan only reads, and
+	// the service restarts right after anyway.
+	s.moveMu.Lock()
+	defer s.moveMu.Unlock()
+	if err := s.Update.Install(); err != nil {
+		return err
+	}
+	if s.OnRestart != nil {
+		go s.OnRestart()
+	}
+	return nil
 }

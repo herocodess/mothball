@@ -45,6 +45,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return cmdStatus(args[1:], stdout, stderr)
 	case "service":
 		return cmdService(args[1:], stdout, stderr)
+	case "update":
+		return cmdUpdate(stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, "mothball", version)
 		return 0
@@ -71,6 +73,7 @@ Usage:
   mothball status               free space, autopilot and what is reclaimable
   mothball service install      run in the background and start at login
   mothball service uninstall    stop running in the background
+  mothball update               check for a newer version
   mothball version
 
 Options:

@@ -25,6 +25,10 @@ type Config struct {
 	CheckMinutes int `json:"checkMinutes"`
 	// Onboarded is set once the user has seen the first-run screen.
 	Onboarded bool `json:"onboarded"`
+	// SkipUpdateCheck stops the daily check for new versions on GitHub.
+	SkipUpdateCheck bool `json:"skipUpdateCheck"`
+	// Theme is the app's appearance: "system" (default), "light" or "dark".
+	Theme string `json:"theme,omitempty"`
 }
 
 // Default is the starting configuration: everything manual until the user
@@ -44,6 +48,11 @@ func (c *Config) Validate() []string {
 	}
 	if c.AutoEmptyDays < 0 {
 		c.AutoEmptyDays, fixed = 0, append(fixed, "autoEmptyDays set to off")
+	}
+	switch c.Theme {
+	case "", "system", "light", "dark":
+	default:
+		c.Theme, fixed = "system", append(fixed, "theme set to system")
 	}
 	if c.CheckMinutes < 1 {
 		c.CheckMinutes, fixed = 15, append(fixed, "checkMinutes set to 15")

@@ -40,4 +40,26 @@ macOS names whichever program asks for access. During development that is your t
 - [x] Global caches (Xcode, simulators, npm, pnpm, yarn, pip, uv, Gradle, CocoaPods, Homebrew) cleaned through each tool's own command
 - [x] Version tags (`v0.1.0` and up) so `go install ...@latest` resolves to a release
 - [x] Release with checksums (built on the Mac for now)
+- [x] Update check and in-place update for the macOS app; `update.json` to require one
 - [ ] Release builds from CI on a tag
+
+## Publishing a release
+
+1. Bump `version:` in `app/pubspec.yaml`.
+2. On the Mac: `SIGN_ID="Developer ID Application: ..." scripts/build-mac.sh --dmg`.
+3. Build the Windows and Linux CLIs (`GOOS`/`GOARCH` for windows and linux, amd64 and arm64, `-X main.version=...`).
+4. Write `checksums-<version>.txt` covering every file (`shasum -a 256`). The in-app updater refuses a DMG that is not listed in it.
+5. Tag `v<version>`, then `gh release create v<version>` with the DMG, the CLIs and the checksums file.
+6. Update the cask and formula in `herocodess/homebrew-tap` (version and sha256). From 0.1.1 on, the cask carries `auto_updates true`, since the app updates itself.
+
+### Updates
+
+The service checks `releases/latest` once a day (users can turn this off). The macOS app downloads the DMG, checks its checksum, checks that it is signed by the same developer team and accepted by Gatekeeper, then swaps itself in and restarts. Windows, Linux and the CLI on its own show where to get the update.
+
+To make older versions stop moving files until they update (only for a bug that could put away the wrong thing), attach an `update.json` asset to the release:
+
+```json
+{"minimum": "0.1.3", "message": "0.1.2 could misread some Gradle projects. 0.1.3 fixes it."}
+```
+
+Versions below `minimum` pause autopilot, cleaning and auto-empty, and the app shows an update screen.

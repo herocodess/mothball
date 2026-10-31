@@ -16,12 +16,17 @@ class MothballApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Mothball',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(Brightness.light),
-      darkTheme: buildTheme(Brightness.dark),
-      home: HomeScreen(api: api),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: appearance,
+      builder: (context, mode, _) => MaterialApp(
+        title: 'Mothball',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(Brightness.light),
+        darkTheme: buildTheme(Brightness.dark),
+        themeMode: mode,
+        themeAnimationDuration: const Duration(milliseconds: 350),
+        home: HomeScreen(api: api),
+      ),
     );
   }
 }

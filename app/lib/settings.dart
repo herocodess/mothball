@@ -5,10 +5,18 @@ import 'motion.dart';
 import 'theme.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.config, required this.onSave});
+  const SettingsScreen({
+    super.key,
+    required this.config,
+    required this.onSave,
+    this.version = '',
+    this.onCheckUpdate,
+  });
 
   final MothballConfig config;
   final Future<void> Function(MothballConfig) onSave;
+  final String version;
+  final Future<UpdateInfo?> Function()? onCheckUpdate;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -18,10 +26,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late MothballConfig _c = widget.config;
   late final TextEditingController _roots = TextEditingController(text: widget.config.roots.join('\n'));
   bool _saving = false;
+  bool _checking = false;
+  String? _checkResult;
+
+  Future<void> _checkNow() async {
+    setState(() {
+      _checking = true;
+      _checkResult = null;
+    });
+    String msg;
+    try {
+      final u = await widget.onCheckUpdate!();
+      if (u == null || u.error.isNotEmpty) {
+        msg = "Couldn't reach GitHub. Try again in a bit.";
+      } else if (u.available) {
+        msg = 'Mothball ${u.latest} is out. Update from the banner on the main screen.';
+      } else {
+        msg = "You're on the latest version.";
+      }
+    } catch (_) {
+      msg = "Couldn't check right now.";
+    }
+    if (mounted) {
+      setState(() {
+        _checking = false;
+        _checkResult = msg;
+      });
+    }
+  }
 
   @override
   void dispose() {
     _roots.dispose();
+    // Leaving without saving puts the saved appearance back.
+    if (!_saving) appearance.value = themeModeOf(widget.config.theme);
     super.dispose();
   }
 
@@ -58,6 +96,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 720),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  staggered(_Group(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 18, 20),
+                      child: Wrap(
+                        spacing: 20,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                            const Text('Appearance', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            const SizedBox(height: 4),
+                            Text('Match your system, or pick one.', style: TextStyle(color: quiet)),
+                          ]),
+                          SegmentedButton<String>(
+                            showSelectedIcon: false,
+                            segments: const [
+                              ButtonSegment(value: 'system', label: Text('System'), icon: Icon(Icons.contrast_rounded, size: 18)),
+                              ButtonSegment(value: 'light', label: Text('Light'), icon: Icon(Icons.light_mode_outlined, size: 18)),
+                              ButtonSegment(value: 'dark', label: Text('Dark'), icon: Icon(Icons.dark_mode_outlined, size: 18)),
+                            ],
+                            selected: {_c.theme},
+                            onSelectionChanged: (v) {
+                              setState(() => _c = _c.copyWith(theme: v.first));
+                              appearance.value = themeModeOf(v.first); // preview right away
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ])),
                   staggered(_Group(children: [
                     _Value(
                       title: 'Idle after',
@@ -105,6 +174,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         max: 60,
                         onChanged: (v) => setState(() => _c = _c.copyWith(autoEmptyDays: v)),
                       ),
+                    ),
+                  ])),
+                  staggered(_Group(children: [
+                    _Toggle(
+                      title: 'Check for updates',
+                      hint: 'Once a day, Mothball asks GitHub whether a newer version is out. Nothing about you or your projects is sent.',
+                      value: !_c.skipUpdateCheck,
+                      onChanged: (v) => setState(() => _c = _c.copyWith(skipUpdateCheck: !v)),
+                    ),
+                    Divider(height: 1, color: MB.line(context)),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 18, 16),
+                      child: Row(children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(widget.version.isEmpty ? 'Mothball' : 'Mothball ${widget.version}',
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            if (_checkResult != null) ...[
+                              const SizedBox(height: 4),
+                              Text(_checkResult!, style: TextStyle(color: quiet)),
+                            ],
+                          ]),
+                        ),
+                        if (widget.onCheckUpdate != null)
+                          OutlinedButton(
+                            onPressed: _checking ? null : _checkNow,
+                            child: Text(_checking ? 'Checking…' : 'Check now'),
+                          ),
+                      ]),
                     ),
                   ])),
                   staggered(_Group(children: [

@@ -21,6 +21,7 @@ import (
 	"github.com/herocodess/mothball/core/pack"
 	"github.com/herocodess/mothball/core/service"
 	"github.com/herocodess/mothball/core/tray"
+	"github.com/herocodess/mothball/core/update"
 	"github.com/herocodess/mothball/rules"
 )
 
@@ -63,6 +64,23 @@ func cmdService(args []string, stdout, stderr io.Writer) int {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 		withTray := tray.Available() && !hasFlag(args[1:], "--no-tray")
+
+		// After an update is installed: give the app a moment to quit, open
+		// the new one, then exit with a failure code so launchd or systemd
+		// starts the service again from the new copy.
+		exitCode := 0
+		s.Update = update.New(version, filepath.Join(s.Dir, "updates"))
+		s.OnRestart = func() {
+			time.Sleep(1500 * time.Millisecond)
+			if app := s.Update.App; app != "" {
+				_ = exec.Command("open", app).Start()
+			}
+			exitCode = restartExitCode
+			shutdown()
+			if withTray {
+				tray.Quit()
+			}
+		}
 		go func() {
 			<-sig
 			shutdown()
@@ -72,14 +90,14 @@ func cmdService(args []string, stdout, stderr io.Writer) int {
 		}()
 		if !withTray {
 			s.Run(stop)
-			return 0
+			return exitCode
 		}
 		done := make(chan struct{})
 		go func() { s.Run(stop); close(done) }()
 		tray.Run(s, openApp, shutdown) // owns the main thread until Quit
 		shutdown()
 		<-done
-		return 0
+		return exitCode
 	case "install":
 		return installService(stdout, stderr)
 	case "uninstall":
@@ -192,22 +210,12 @@ func openApp() {
 	}
 }
 
-// appBundle is Mothball.app when this binary runs from inside it, at
-// Mothball.app/Contents/Library/LoginItems/Mothball Agent.app/Contents/MacOS.
-func appBundle() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return ""
-	}
-	exe, _ = filepath.EvalSymlinks(exe)
-	const marker = "/Contents/Library/LoginItems/"
-	if i := strings.Index(exe, marker); i > 0 && strings.HasSuffix(exe[:i], ".app") {
-		return exe[:i]
-	}
-	return ""
-}
+func appBundle() string { return update.AppBundle() }
 
 const launchdLabel = "dev.mothball.service"
+
+// restartExitCode asks launchd or systemd to start the service again.
+const restartExitCode = 75
 
 func installService(stdout, stderr io.Writer) int {
 	exe, err := os.Executable()
