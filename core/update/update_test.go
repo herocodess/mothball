@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -368,6 +369,9 @@ func newLinuxUpdater(t *testing.T, srv *server) *Updater {
 }
 
 func TestAppImageUpdateReplacesTheFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("AppImages are Linux only; Windows has no executable bit")
+	}
 	srv := newServer(t, "v0.2.0")
 	u := newLinuxUpdater(t, srv)
 	st, err := u.Check(context.Background())
@@ -397,6 +401,9 @@ func TestAppImageUpdateReplacesTheFile(t *testing.T) {
 }
 
 func TestAppImageBadChecksumKeepsTheOldFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("AppImages are Linux only; Windows has no executable bit")
+	}
 	srv := newServer(t, "v0.2.0")
 	srv.sum = strings.Repeat("0", 64)
 	u := newLinuxUpdater(t, srv)

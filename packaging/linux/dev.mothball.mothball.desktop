@@ -10,4 +10,3 @@ Categories=Development;Utility;
 Keywords=disk;space;cleanup;clean;node_modules;build;cache;developer;
 StartupWMClass=dev.mothball.mothball
 StartupNotify=true
-SingleMainWindow=true
