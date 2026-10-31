@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _busy = false;
   String _busyLabel = '';
   Timer? _poll;
+  Timer? _fastPoll; // quicker refresh while an update downloads
   String? _laterFor; // version whose banner the user put off this session
 
   @override
@@ -40,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    _fastPoll?.cancel();
     super.dispose();
   }
 
@@ -62,8 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
       // Poll faster while an update downloads, so the bar moves smoothly.
+      _fastPoll?.cancel();
       if (st.update?.downloading ?? false) {
-        Future<void>.delayed(const Duration(milliseconds: 700), () {
+        _fastPoll = Timer(const Duration(milliseconds: 700), () {
           if (mounted) _refresh();
         });
       }
