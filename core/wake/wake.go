@@ -4,6 +4,7 @@
 package wake
 
 import (
+	"github.com/herocodess/mothball/core/proc"
 	"io"
 	"os"
 	"os/exec"
@@ -112,7 +113,7 @@ func commands(project string, entries []history.Entry, packs *pack.Set) []string
 // a newer commit, or a newer change to its top-level files.
 func returnedSince(project string, t time.Time) bool {
 	if git, err := exec.LookPath("git"); err == nil {
-		cmd := exec.Command(git, "-C", project, "log", "-1", "--format=%ct", "--", ".")
+		cmd := proc.Command(git, "-C", project, "log", "-1", "--format=%ct", "--", ".")
 		if out, err := cmd.Output(); err == nil {
 			if secs, err := strconv.ParseInt(strings.TrimSpace(string(out)), 10, 64); err == nil && time.Unix(secs, 0).After(t) {
 				return true
@@ -160,9 +161,9 @@ func (e *CommandError) Error() string { return e.Command + ": " + e.Err.Error() 
 
 func shell(c string) *exec.Cmd {
 	if runtime.GOOS == "windows" {
-		return exec.Command("cmd.exe", "/C", c)
+		return proc.Command("cmd.exe", "/C", c)
 	}
-	return exec.Command("/bin/sh", "-c", c)
+	return proc.Command("/bin/sh", "-c", c)
 }
 
 func exists(p string) bool {

@@ -1,0 +1,261 @@
+name: windows
+
+# Builds the Windows installer for x64 and Arm64, then installs it on a real
+# Windows machine of that kind and checks everything a user would touch:
+# files, Start menu, startup app, PATH, the background service, the app
+# window, a second launch, an in-place update, and a clean uninstall.
+#
+# On a version tag it also attaches the installers, zips and CLIs to that
+# release and adds them to its checksums file.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: installer (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, os: windows-latest, machine: '0x8664' }
+          - { arch: arm64, os: windows-11-arm, machine: '0xAA64' }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # There is no Flutter download for Arm64 Windows, so both machines use
+      # the stable branch from git, which builds for the machine it runs on.
+      - name: Flutter
+        run: |
+          git clone --depth 1 -b stable https://github.com/flutter/flutter.git "$env:RUNNER_TEMP\flutter"
+          "$env:RUNNER_TEMP\flutter\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+      - run: flutter --version
+      - run: flutter precache --windows
+
+      - name: Inno Setup
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Invoke-WebRequest -Uri https://jrsoftware.org/download.php/is.exe -OutFile "$env:RUNNER_TEMP\is.exe"
+            Start-Process "$env:RUNNER_TEMP\is.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/ALLUSERS' -Wait
+          }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup did not install' }
+          "${env:ProgramFiles(x86)}\Inno Setup 6" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+      - name: Build
+        run: ./scripts/build-windows.ps1
+
+      - name: Everything is built for ${{ matrix.arch }}
+        run: |
+          function Machine($p) {
+            $b = [IO.File]::ReadAllBytes($p)
+            $pe = [BitConverter]::ToInt32($b, 0x3C)
+            '0x{0:X4}' -f [BitConverter]::ToUInt16($b, $pe + 4)
+          }
+          $stage = "build\windows-release\stage-${{ matrix.arch }}"
+          $files = @("$stage\app\Mothball.exe", "$stage\app\flutter_windows.dll", "$stage\app\vcruntime140.dll",
+                     "$stage\app\msvcp140.dll", "$stage\bin\mothball.exe", "$stage\bin\mothballw.exe")
+          if ('${{ matrix.arch }}' -eq 'x64') { $files += "$stage\app\vcruntime140_1.dll" }
+          $bad = 0
+          foreach ($f in $files) {
+            $m = Machine $f
+            "{0,-60} {1}" -f $f, $m
+            if ($m -ne '${{ matrix.machine }}') { $bad++ }
+          }
+          if ($bad) { throw "$bad files are not built for ${{ matrix.arch }}" }
+
+      - name: Install
+        run: |
+          # Wait for the installer itself, not the service it starts (which
+          # Start-Process -Wait would wait for forever).
+          function RunSetup($exe, $argv) {
+            $p = Start-Process $exe -ArgumentList $argv -PassThru
+            $null = $p.Handle
+            $p.WaitForExit()
+            return $p.ExitCode
+          }
+          $setup = Get-ChildItem build\windows-release\Mothball-*-windows-${{ matrix.arch }}-setup.exe | Select-Object -First 1
+          "Installing $($setup.Name)"
+          $code = RunSetup $setup.FullName @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$env:RUNNER_TEMP\install.log")
+          if ($code) { Get-Content "$env:RUNNER_TEMP\install.log"; throw "installer exited $code" }
+
+      - name: Installed correctly
+        run: |
+          $dir = "$env:LOCALAPPDATA\Programs\Mothball"
+          $version = ((Select-String -Path app\pubspec.yaml -Pattern '^version:\s*([^+\s]+)').Matches[0].Groups[1].Value)
+          function Need($ok, $what) { if ($ok) { "ok    $what" } else { throw "FAIL  $what" } }
+
+          foreach ($f in 'Mothball.exe', 'bin\mothball.exe', 'bin\mothballw.exe', 'unins000.exe', 'vcruntime140.dll', 'data\app.so') {
+            Need (Test-Path "$dir\$f") "installed $f"
+          }
+          Need (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Mothball.lnk") 'Start menu shortcut'
+
+          $run = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).Mothball
+          Need ($run -like '*\bin\mothballw.exe" service run') "starts at login ($run)"
+
+          $path = (Get-ItemProperty 'HKCU:\Environment').Path
+          Need ($path -split ';' -contains "$dir\bin") 'bin is on the user PATH'
+
+          $uninst = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B3883D3F-7C21-4105-A537-172930CAB764}_is1'
+          Need ($uninst.DisplayName -eq 'Mothball' -and $uninst.DisplayVersion -eq $version) "listed in Apps ($($uninst.DisplayName) $($uninst.DisplayVersion))"
+
+          $v = & "$dir\bin\mothball.exe" version
+          Need ($v -eq "mothball $version") "mothball version ($v)"
+
+          # The service was started by the installer.
+          $ok = $false
+          foreach ($i in 1..30) {
+            $s = & "$dir\bin\mothball.exe" status 2>&1 | Out-String
+            if ($s -match 'running') { $ok = $true; break }
+            Start-Sleep 1
+          }
+          Need $ok 'background service is running'
+          Need ((Get-Process mothballw -ErrorAction SilentlyContinue).Count -eq 1) 'exactly one service process'
+
+      - name: Open the app, then open it again
+        run: |
+          $dir = "$env:LOCALAPPDATA\Programs\Mothball"
+          New-Item -ItemType Directory -Force shots | Out-Null
+          $app = Start-Process "$dir\Mothball.exe" -PassThru
+          Start-Sleep 20
+          if ($app.HasExited) { throw "the app exited with $($app.ExitCode)" }
+
+          # Capture the app's own window (PrintWindow), so it shows even when
+          # Windows puts something on top, like its first-run privacy screen.
+          Add-Type -AssemblyName System.Drawing
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class Win {
+            public struct RECT { public int Left, Top, Right, Bottom; }
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
+          }
+          '@
+          $h = (Get-Process Mothball).MainWindowHandle
+          if ($h -eq [IntPtr]::Zero) { throw 'the app has no window' }
+          $r = New-Object Win+RECT
+          [void][Win]::GetWindowRect($h, [ref]$r)
+          $bmp = New-Object System.Drawing.Bitmap ($r.Right - $r.Left), ($r.Bottom - $r.Top)
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $hdc = $g.GetHdc()
+          $ok = [Win]::PrintWindow($h, $hdc, 2)   # PW_RENDERFULLCONTENT
+          $g.ReleaseHdc($hdc)
+          $bmp.Save("$PWD\shots\windows-${{ matrix.arch }}-installed.png")
+          "window $($bmp.Width)x$($bmp.Height), captured: $ok"
+
+          # A second launch must bring the first window forward and exit.
+          $second = Start-Process "$dir\Mothball.exe" -PassThru
+          if (-not $second.WaitForExit(15000)) { throw 'a second copy of the app stayed open' }
+          $count = (Get-Process Mothball -ErrorAction SilentlyContinue).Count
+          if ($count -ne 1) { throw "$count app windows open, want 1" }
+          "ok    single instance"
+
+      - name: Update in place while running
+        run: |
+          # What the updater does: run the new installer silently over a
+          # running app and service, then expect both back.
+          $dir = "$env:LOCALAPPDATA\Programs\Mothball"
+          $before = (Get-Process Mothball).Id
+          Stop-Process -Id $before   # the app quits itself before updating
+          $setup = Get-ChildItem build\windows-release\Mothball-*-windows-${{ matrix.arch }}-setup.exe | Select-Object -First 1
+          $p = Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/RELAUNCH=1',"/LOG=$env:RUNNER_TEMP\update.log" -PassThru
+          $null = $p.Handle
+          $p.WaitForExit()
+          if ($p.ExitCode) { Get-Content "$env:RUNNER_TEMP\update.log"; throw "update exited $($p.ExitCode)" }
+          Start-Sleep 10
+          $app = Get-Process Mothball -ErrorAction SilentlyContinue
+          if (-not $app) { throw 'the app was not reopened after the update' }
+          "ok    app reopened (pid $($app.Id))"
+          $ok = $false
+          foreach ($i in 1..30) {
+            if ((& "$dir\bin\mothball.exe" status 2>&1 | Out-String) -match 'running') { $ok = $true; break }
+            Start-Sleep 1
+          }
+          if (-not $ok) { throw 'the service did not come back after the update' }
+          if ((Get-Process mothballw).Count -ne 1) { throw 'more than one service after the update' }
+          "ok    service back"
+
+      - name: Uninstall leaves nothing behind
+        run: |
+          $dir = "$env:LOCALAPPDATA\Programs\Mothball"
+          $u = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$env:RUNNER_TEMP\uninstall.log" -PassThru
+          $u.WaitForExit()
+          # The uninstaller hands over to a copy of itself in %TEMP% and
+          # finishes in the background, so each check gets up to 60 seconds.
+          function Eventually([scriptblock]$ok, $what) {
+            foreach ($i in 1..60) { if (& $ok) { "ok    $what"; return }; Start-Sleep 1 }
+            Get-Content "$env:RUNNER_TEMP\uninstall.log" -ErrorAction SilentlyContinue | Select-Object -Last 20
+            throw "FAIL  $what"
+          }
+          Eventually { -not (Test-Path "$dir\Mothball.exe") } 'app removed'
+          Eventually { -not (Test-Path "$dir\bin") } 'bin removed'
+          Eventually { -not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Mothball.lnk") } 'Start menu shortcut removed'
+          Eventually { -not (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).Mothball } 'removed from startup apps'
+          Eventually { -not ((Get-ItemProperty 'HKCU:\Environment').Path -split ';' -contains "$dir\bin") } 'removed from PATH'
+          Eventually { -not (Get-Process mothballw, Mothball -ErrorAction SilentlyContinue) } 'nothing still running'
+          Eventually { -not (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B3883D3F-7C21-4105-A537-172930CAB764}_is1') } 'removed from Apps'
+          Eventually { -not (Test-Path $dir) } 'install folder gone'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-${{ matrix.arch }}
+          path: |
+            build/windows-release/*.exe
+            build/windows-release/*.zip
+            shots/
+            ${{ runner.temp }}/*.log
+
+  publish:
+    name: attach to the release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dl
+          pattern: windows-*
+          merge-multiple: true
+      - name: Wait for the release
+        run: |
+          for i in $(seq 1 60); do
+            gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 && exit 0
+            sleep 30
+          done
+          echo "release $TAG not found"; exit 1
+      - name: Upload and update checksums
+        run: |
+          V="${TAG#v}"
+          cd dl
+          ls -la
+          files=$(ls Mothball-$V-windows-*-setup.exe Mothball-$V-windows-*.zip mothball-$V-windows-*.exe)
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p "checksums-$V.txt" -O sums.txt || touch sums.txt
+          for f in $files; do
+            grep -v "  $f\$" sums.txt > sums.new || true
+            mv sums.new sums.txt
+            sha256sum "$f" >> sums.txt
+          done
+          sort -k2 sums.txt -o "checksums-$V.txt"
+          cat "checksums-$V.txt"
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber $files "checksums-$V.txt"

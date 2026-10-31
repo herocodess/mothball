@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
         content: SizedBox(
           width: 420,
           child: Text(
-            '${items.length == 1 ? 'This folder moves' : '${items.length} folders move'} to the Trash. '
+            '${items.length == 1 ? 'This folder moves' : '${items.length} folders move'} to the $trashName. '
             'Your code is never touched, and any project can be woken later with its usual install command.',
           ),
         ),
@@ -529,7 +529,7 @@ class _SpacePanel extends StatelessWidget {
         Wrap(spacing: 20, runSpacing: 8, children: [
           const _Legend(color: MB.accent, label: 'Free now'),
           if (reclaim > 0) _Legend(color: MB.accent, striped: true, label: '${humanBytes(reclaim)} you can get back'),
-          if (st.waitingBytes > 0) _Legend(color: quiet, label: '${humanBytes(st.waitingBytes)} waiting in the Trash'),
+          if (st.waitingBytes > 0) _Legend(color: quiet, label: '${humanBytes(st.waitingBytes)} waiting in the $trashName'),
         ]),
       ]),
     );
@@ -733,8 +733,8 @@ class _IdlePanel extends StatelessWidget {
           subtitle: s == null
               ? 'Not scanned yet'
               : s.idle.isEmpty
-                  ? 'Nothing untouched for $idleDays+ days. ${s.projects} projects checked.'
-                  : 'Untouched for $idleDays+ days · ${humanBytes(s.idleBytes)} of build output in ${s.idle.length} folders',
+                  ? 'Nothing untouched for $idleDays+ days. ${plural(s.projects, 'project')} checked.'
+                  : 'Untouched for $idleDays+ days · ${humanBytes(s.idleBytes)} of build output in ${plural(s.idle.length, 'folder')}',
           trailing: TextButton.icon(
             onPressed: scanning ? null : onScan,
             icon: Spin(spinning: scanning, child: const Icon(Icons.refresh_rounded, size: 18)),
@@ -770,7 +770,7 @@ class _IdlePanel extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     Flexible(
-                      child: Text('Moves to the Trash. Your code stays put.',
+                      child: Text('Moves to the $trashName. Your code stays put.',
                           style: TextStyle(fontSize: 13, color: MB.quiet(context))),
                     ),
                   ]),
@@ -1030,7 +1030,7 @@ class _MothballedPanel extends StatelessWidget {
     return Panel(
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _SectionHeader(title: 'Mothballed', subtitle: '${projects.length} projects resting · ${humanBytes(total)} put away'),
+        _SectionHeader(title: 'Mothballed', subtitle: '${plural(projects.length, 'project')} resting · ${humanBytes(total)} put away'),
         const SizedBox(height: 14),
         for (final p in projects) _MothballedRow(p: p, onWake: () => onWake(p)),
       ]),

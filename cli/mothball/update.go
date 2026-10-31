@@ -36,9 +36,11 @@ func cmdUpdate(stdout, stderr io.Writer) int {
 	exe, _ := os.Executable()
 	exe, _ = filepath.EvalSymlinks(exe)
 	switch {
-	case u.App != "":
+	case st.CanInstall:
 		fmt.Fprintln(stdout, "Open Mothball and click Update, or download it from:")
 		fmt.Fprintln(stdout, " ", st.NotesURL)
+	case strings.Contains(strings.ToLower(exe), `\scoop\`):
+		fmt.Fprintln(stdout, "Update with:\n  scoop update mothball")
 	case strings.Contains(exe, "/Cellar/") || strings.Contains(exe, "/Caskroom/"):
 		fmt.Fprintln(stdout, "Update with:\n  brew upgrade mothball")
 	case strings.Contains(exe, string(filepath.Separator)+"go"+string(filepath.Separator)+"bin"):

@@ -498,9 +498,9 @@ func TestServiceInstall(t *testing.T) {
 	defer e.run(true, "service", "uninstall")
 	switch runtime.GOOS {
 	case "windows":
-		q, err := exec.Command("schtasks", "/Query", "/TN", "Mothball").CombinedOutput()
-		if err != nil {
-			t.Fatalf("scheduled task missing: %v\n%s", err, q)
+		q, err := exec.Command("reg", "query", `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, "/v", "Mothball").CombinedOutput()
+		if err != nil || !strings.Contains(string(q), "service run") {
+			t.Fatalf("Mothball is not in the startup apps: %v\n%s", err, q)
 		}
 	case "linux":
 		home, _ := os.UserHomeDir()
@@ -511,6 +511,11 @@ func TestServiceInstall(t *testing.T) {
 	}
 	u, _ := e.run(false, "service", "uninstall")
 	t.Log(u)
+	if runtime.GOOS == "windows" {
+		if q, err := exec.Command("reg", "query", `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, "/v", "Mothball").CombinedOutput(); err == nil {
+			t.Fatalf("still in the startup apps after uninstall:\n%s", q)
+		}
+	}
 }
 
 func TestVersionAndHelp(t *testing.T) {

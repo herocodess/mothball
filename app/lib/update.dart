@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'api.dart';
 import 'logo.dart';
 import 'models.dart';
 import 'motion.dart';
@@ -146,7 +147,7 @@ class UpdateRequired extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Until you update, Mothball won\'t put anything away. Your projects and anything already in the Trash are fine.',
+                'Until you update, Mothball won\'t put anything away. Your projects and anything already in the $trashName are fine.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, height: 1.5, color: MB.quiet(context)),
               ),
