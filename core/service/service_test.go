@@ -198,3 +198,20 @@ func TestNoFullDiskAccessSkipsGuardedFolders(t *testing.T) {
 		t.Fatalf("access = %+v", st.Access)
 	}
 }
+
+// Status must answer at once even while a long scan holds the work lock.
+func TestStatusDoesNotWaitForWork(t *testing.T) {
+	s, _ := newService(t, 1<<40)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		_, _ = s.Status()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("status blocked behind the work lock")
+	}
+}

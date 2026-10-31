@@ -169,6 +169,7 @@ class MothballConfig {
 class Status {
   Status({
     required this.access,
+    this.scanning = false,
     required this.freeBytes,
     required this.targetBytes,
     required this.waitingBytes,
@@ -180,6 +181,7 @@ class Status {
 
   factory Status.fromJson(Map<String, dynamic> j) => Status(
         access: AccessInfo.fromJson((j['access'] as Map<String, dynamic>?) ?? const {}),
+        scanning: _bool(j['scanning']),
         freeBytes: _int(j['freeBytes']),
         targetBytes: _int(j['targetBytes']),
         waitingBytes: _int(j['waitingBytes']),
@@ -190,6 +192,7 @@ class Status {
       );
 
   final AccessInfo access;
+  final bool scanning; // the service is scanning on its own
   final int freeBytes;
   final int targetBytes;
   final int waitingBytes;

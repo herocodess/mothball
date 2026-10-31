@@ -36,7 +36,9 @@ type Service struct {
 
 	mu       sync.Mutex // one scan, clean or wake at a time
 	log      *history.Log
+	scanMu   sync.RWMutex // guards lastScan and scanning; never held during work
 	lastScan *ScanSummary
+	scanning bool
 
 	evMu   sync.Mutex
 	events []Event
@@ -99,6 +101,8 @@ func (s *Service) Scan() (*ScanSummary, error) {
 }
 
 func (s *Service) scanLocked() (*ScanSummary, error) {
+	s.setScanning(true)
+	defer s.setScanning(false)
 	c, err := s.Config()
 	if err != nil {
 		return nil, err
@@ -117,7 +121,9 @@ func (s *Service) scanLocked() (*ScanSummary, error) {
 			sum.ActiveSize += x.Bytes
 		}
 	}
+	s.scanMu.Lock()
 	s.lastScan = sum
+	s.scanMu.Unlock()
 	return sum, nil
 }
 
@@ -132,6 +138,12 @@ func (s *Service) Access() access.Info {
 	return info
 }
 
+func (s *Service) setScanning(v bool) {
+	s.scanMu.Lock()
+	s.scanning = v
+	s.scanMu.Unlock()
+}
+
 // Status is what the menu bar and app show at a glance.
 type Status struct {
 	Access       access.Info    `json:"access"`
@@ -140,6 +152,7 @@ type Status struct {
 	WaitingBytes int64          `json:"waitingBytes"` // in the Trash from Mothball, not yet emptied
 	Config       config.Config  `json:"config"`
 	LastScan     *ScanSummary   `json:"lastScan,omitempty"`
+	Scanning     bool           `json:"scanning"`
 	Mothballed   []wake.Project `json:"mothballed"`
 	Events       []Event        `json:"events"`
 }
@@ -155,15 +168,17 @@ func (s *Service) Status() (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.scanMu.RLock()
+	last, scanning := s.lastScan, s.scanning
+	s.scanMu.RUnlock()
 	return Status{
+		Scanning:     scanning,
 		Access:       s.Access(),
 		FreeBytes:    free,
 		TargetBytes:  uint64(c.TargetFreeGB) << 30,
 		WaitingBytes: purge.WaitingBytes(entries),
 		Config:       c,
-		LastScan:     s.lastScan,
+		LastScan:     last,
 		Mothballed:   wake.Mothballed(entries, s.Packs),
 		Events:       s.recentEvents(),
 	}, nil

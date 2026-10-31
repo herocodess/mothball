@@ -110,6 +110,9 @@ func cmdStatus(args []string, stdout, stderr io.Writer) int {
 	state := "not running"
 	if running {
 		state = "running"
+		if st.Scanning {
+			state = "running, scanning now"
+		}
 	}
 	auto := "off"
 	if st.Config.Autopilot {

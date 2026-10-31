@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _refresh(scanIfNeeded: true);
-    _poll = Timer.periodic(const Duration(seconds: 30), (_) => _refresh());
+    _poll = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
   }
 
   @override
@@ -185,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Column(children: [
         _TopBar(
-          busy: _busy,
+          busy: _busy || (st?.scanning ?? false),
           running: st != null && _offline == null,
           onSettings: st == null
               ? null
