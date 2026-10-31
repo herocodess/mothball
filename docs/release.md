@@ -21,7 +21,7 @@ macOS names whichever program asks for access. During development that is your t
 - [x] Hardened runtime, Developer ID signing and notarisation for the app and both binaries
 - [x] Universal build (Apple silicon and Intel)
 - [x] Signed, notarised, stapled DMG (`scripts/build-mac.sh --dmg`)
-- [ ] Homebrew cask; the cask also links the CLI
+- [x] Homebrew cask and formula in herocodess/tap; the cask also links the CLI
 - [ ] Folders on external disks: trash to that disk's own `.Trashes` folder instead of skipping
 
 ## Windows
@@ -38,5 +38,6 @@ macOS names whichever program asks for access. During development that is your t
 ## Everywhere
 
 - [x] Global caches (Xcode, simulators, npm, pnpm, yarn, pip, uv, Gradle, CocoaPods, Homebrew) cleaned through each tool's own command
-- [ ] Version tags (`v0.1.0` and up) so `go install ...@latest` resolves to a release
-- [ ] Release builds from CI on a tag, with checksums
+- [x] Version tags (`v0.1.0` and up) so `go install ...@latest` resolves to a release
+- [x] Release with checksums (built on the Mac for now)
+- [ ] Release builds from CI on a tag

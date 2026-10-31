@@ -51,13 +51,24 @@ Caches are cleaned through each tool's own command where there is one (`npm cach
 
 ## Install
 
-> Mothball is in early development. Nothing is released yet.
+**macOS app** (Apple silicon and Intel, macOS 11 or later). Download [Mothball-0.1.0.dmg](https://github.com/herocodess/mothball/releases/latest), open it and drag Mothball to Applications. It is signed and notarised, and includes the `mothball` command.
 
-Planned: a Homebrew cask and formula on macOS, Scoop and winget on Windows, and packages for Linux. Until then, build the CLI from source:
+Or with Homebrew:
 
 ```sh
+brew tap herocodess/tap
+brew trust herocodess/tap
+brew install --cask mothball
+```
+
+**Command line only** (macOS, Linux, Windows):
+
+```sh
+brew install herocodess/tap/mothball                      # macOS and Linux
 go install github.com/herocodess/mothball/cli/mothball@latest
 ```
+
+or download the binary for your system from the [latest release](https://github.com/herocodess/mothball/releases/latest). The Windows and Linux desktop apps come next.
 
 ## Repository layout
 
@@ -65,7 +76,7 @@ go install github.com/herocodess/mothball/cli/mothball@latest
 | --- | --- |
 | `core/` | The Go engine: scanning, rule matching, verification, Trash, wake, autopilot |
 | `cli/` | The `mothball` command, a thin layer over `core` |
-| `rules/` | Rule packs, one YAML file per stack |
+| `rules/` | Rule packs, one JSON file per stack |
 | `app/` | The Flutter desktop app for macOS, Windows and Linux (see [app/README.md](app/README.md)) |
 | `assets/` | Logo, icons and the menu bar glyph |
 | `docs/` | Rule pack format and design notes |
