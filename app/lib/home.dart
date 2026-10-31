@@ -245,7 +245,7 @@ class _TopBar extends StatelessWidget {
           opacity: running ? 1 : 0,
           duration: const Duration(milliseconds: 400),
           child: Row(children: [
-            LiveDot(color: MB.accent, size: 6),
+            const LiveDot(color: MB.accent, size: 6),
             const SizedBox(width: 4),
             Text(busy ? 'Working' : 'Watching', style: TextStyle(color: MB.quiet(context), fontSize: 13)),
           ]),
@@ -407,7 +407,7 @@ class _SpacePanel extends StatelessWidget {
         _SpaceBar(free: st.freeBytes, reclaim: reclaim, target: st.targetBytes, showTarget: st.config.autopilot),
         const SizedBox(height: 14),
         Wrap(spacing: 20, runSpacing: 8, children: [
-          _Legend(color: MB.accent, label: 'Free now'),
+          const _Legend(color: MB.accent, label: 'Free now'),
           if (reclaim > 0) _Legend(color: MB.accent, striped: true, label: '${humanBytes(reclaim)} you can get back'),
           if (st.waitingBytes > 0) _Legend(color: quiet, label: '${humanBytes(st.waitingBytes)} waiting in the Trash'),
         ]),
@@ -437,7 +437,7 @@ class _AutopilotToggle extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            if (on) ...[LiveDot(color: MB.accent, size: 6), const SizedBox(width: 2)],
+            if (on) ...[const LiveDot(color: MB.accent, size: 6), const SizedBox(width: 2)],
             const Text('Autopilot', style: TextStyle(fontWeight: FontWeight.w600)),
           ]),
           const SizedBox(height: 2),
