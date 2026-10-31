@@ -68,6 +68,13 @@ brew install --cask mothball
 
 It installs for your account only, with no admin prompt, adds `mothball` to your PATH, runs in the background from your startup apps, and updates itself. Not sure which one you need? Settings > System > About > System type.
 
+Or with [Scoop](https://scoop.sh) (the portable build; run `mothball service install` once to start it at login):
+
+```powershell
+scoop bucket add mothball https://github.com/herocodess/scoop-bucket
+scoop install mothball/mothball
+```
+
 The installer is not code signed yet, so Windows SmartScreen may say it "protected your PC". Choose **More info**, then **Run anyway**. Each release lists SHA-256 checksums so you can check the download.
 
 **Linux and the command line only:**
