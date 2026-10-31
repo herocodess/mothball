@@ -283,7 +283,12 @@ func installService(stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "mothball:", err)
 		return 1
 	}
-	exe, _ = filepath.EvalSymlinks(exe)
+	// On macOS, resolve Homebrew's symlink so launchd runs the binary inside
+	// Mothball.app. On Windows keep the path as is: Scoop's "current" folder
+	// is a junction, and its target is removed on the next update.
+	if runtime.GOOS != "windows" {
+		exe, _ = filepath.EvalSymlinks(exe)
+	}
 	home, _ := os.UserHomeDir()
 	switch runtime.GOOS {
 	case "darwin":
