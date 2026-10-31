@@ -200,14 +200,18 @@ class _SettingsPreviewState extends State<_SettingsPreview> {
           ]),
         );
 
-    return Container(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: dark ? 0.35 : 0.07), blurRadius: 36, offset: const Offset(0, 14)),
+        ],
+      ),
+      child: Container(
       decoration: BoxDecoration(
         color: win,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: MB.line(context)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: dark ? 0.4 : 0.08), blurRadius: 40, offset: const Offset(0, 20)),
-        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -242,6 +246,7 @@ class _SettingsPreviewState extends State<_SettingsPreview> {
           ]),
         ),
       ]),
+      ),
     );
   }
 }

@@ -95,6 +95,7 @@ ThemeData buildTheme(Brightness b) {
       thumbColor: dark ? Colors.white : MB.ink,
       overlayColor: MB.accent.withValues(alpha: 0.12),
       showValueIndicator: ShowValueIndicator.never,
+      tickMarkShape: SliderTickMarkShape.noTickMark,
     ),
     tooltipTheme: TooltipThemeData(
       textStyle: const TextStyle(fontFamily: MB.sans, fontSize: 12, color: Colors.white),

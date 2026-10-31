@@ -701,14 +701,17 @@ class _IdleRow extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(humanBytes(c.bytes), style: const TextStyle(fontWeight: FontWeight.w500, fontFeatures: [FontFeature.tabularFigures()])),
               const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: SizedBox(
-                  height: 4,
-                  child: Stack(children: [
-                    Positioned.fill(child: ColoredBox(color: MB.line(context))),
-                    FractionallySizedBox(widthFactor: share.clamp(0.04, 1.0), child: const ColoredBox(color: MB.accent)),
-                  ]),
+              Container(
+                width: double.infinity,
+                height: 4,
+                alignment: Alignment.centerRight,
+                decoration: BoxDecoration(color: MB.line(context), borderRadius: BorderRadius.circular(3)),
+                child: FractionallySizedBox(
+                  widthFactor: share.clamp(0.04, 1.0),
+                  heightFactor: 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: MB.accent, borderRadius: BorderRadius.circular(3)),
+                  ),
                 ),
               ),
             ]),
