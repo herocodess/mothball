@@ -86,10 +86,31 @@ class MothballApi {
   Future<MothballConfig> saveConfig(MothballConfig c) async =>
       MothballConfig.fromJson((await _call('PUT', '/v1/config', c.toJson())) as Map<String, dynamic>);
 
-  /// Starts the service at login using the mothball CLI on PATH.
+  /// The service binary shipped inside the app, when there is one.
+  /// On macOS it lives in Mothball.app/Contents/Library/LoginItems; on
+  /// Windows and Linux it sits next to the app's executable.
+  static String? bundledService() {
+    final exe = File(Platform.resolvedExecutable);
+    final dir = exe.parent.path; // Mothball.app/Contents/MacOS on macOS
+    final candidates = Platform.isMacOS
+        ? ['$dir/../Library/LoginItems/Mothball Agent.app/Contents/MacOS/mothball']
+        : Platform.isWindows
+            ? ['$dir\\mothball.exe']
+            : ['$dir/mothball'];
+    for (final c in candidates) {
+      if (File(c).existsSync()) return File(c).absolute.path;
+    }
+    return null;
+  }
+
+  /// Starts the service at login: the copy bundled with the app if there is
+  /// one, otherwise the mothball CLI on PATH.
   static Future<String?> installService() async {
     try {
-      final r = await Process.run('mothball', ['service', 'install'], runInShell: true);
+      final bundled = bundledService();
+      final r = bundled != null
+          ? await Process.run(bundled, ['service', 'install'])
+          : await Process.run('mothball', ['service', 'install'], runInShell: true);
       return r.exitCode == 0 ? null : '${r.stderr}'.trim();
     } on ProcessException {
       return 'The mothball command was not found. Install the CLI first.';
