@@ -1,4 +1,4 @@
-# mothball.dev
+# usemothball.dev
 
 The landing page. Plain HTML, CSS and JavaScript: no framework, no build step,
 no dependencies.
@@ -50,6 +50,6 @@ Two sources, both private to the maintainer:
 
 ## Domain
 
-The canonical URL and share image address are `https://mothball.dev/`. If
+The canonical URL and share image address are `https://usemothball.dev/`. If
 the domain changes, update the `canonical`, `og:url` and `og:image` lines in
 `index.html`.
