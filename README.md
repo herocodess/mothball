@@ -77,14 +77,37 @@ scoop install mothball/mothball
 
 The installer is not code signed yet, so Windows SmartScreen may say it "protected your PC". Choose **More info**, then **Run anyway**. Each release lists SHA-256 checksums so you can check the download.
 
-**Linux and the command line only:**
+**Linux** (x64 and Arm64). Download from the [latest release](https://github.com/herocodess/mothball/releases/latest):
+
+- **Any distro:** `Mothball-<version>-linux-x86_64.AppImage` (or `-aarch64` on Arm). Make it executable and run it; it updates itself.
+
+  ```sh
+  chmod +x Mothball-*.AppImage
+  ./Mothball-*.AppImage
+  ```
+
+- **Ubuntu, Debian and friends:** `mothball_<version>-1_amd64.deb` (or `_arm64`)
+
+  ```sh
+  sudo apt install ./mothball_*.deb
+  ```
+
+- **Fedora, RHEL and friends:** `mothball-<version>-1.x86_64.rpm` (or `.aarch64`)
+
+  ```sh
+  sudo dnf install ./mothball-*.rpm
+  ```
+
+Each one adds Mothball to your app menu and the `mothball` command to your terminal (for the AppImage, run `./Mothball-*.AppImage scan` and so on). Mothball starts in the background the first time you open it, through systemd when your desktop has it and the autostart folder when it does not. A tray icon shows where your desktop supports one (on GNOME, with the AppIndicator extension).
+
+**Command line only** (macOS, Linux, Windows):
 
 ```sh
 brew install herocodess/tap/mothball                      # macOS and Linux
 go install github.com/herocodess/mothball/cli/mothball@latest
 ```
 
-or download the binary for your system from the [latest release](https://github.com/herocodess/mothball/releases/latest). The Linux desktop app comes next.
+or download the binary for your system from the [latest release](https://github.com/herocodess/mothball/releases/latest).
 
 ## Code signing
 
@@ -105,7 +128,8 @@ Mothball runs on your computer and collects nothing. It does not send any inform
 | `cli/` | The `mothball` command, a thin layer over `core` |
 | `rules/` | Rule packs, one JSON file per stack |
 | `app/` | The Flutter desktop app for macOS, Windows and Linux (see [app/README.md](app/README.md)) |
-| `installer/` | The Windows installer (Inno Setup) |
+| `installer/` | The Windows installer (Inno Setup) and winget manifests |
+| `packaging/` | Linux packaging: desktop entry, AppStream metadata, icons, AppRun, deb and rpm |
 | `assets/` | Logo, icons and the menu bar glyph |
 | `docs/` | Rule pack format and design notes |
 

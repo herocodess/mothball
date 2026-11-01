@@ -38,8 +38,11 @@ macOS names whichever program asks for access. During development that is your t
 
 ## Linux
 
-- [ ] Tray icon where the desktop supports it
-- [ ] AppImage plus .deb and .rpm; CLI on Homebrew for Linux
+- [x] Tray icon where the desktop supports it
+- [x] AppImage (self-updating), .deb and .rpm for x64 and Arm64; CLI on Homebrew for Linux
+- [x] Background service through systemd, or the autostart folder without it; restarts after a package upgrade
+- [x] CI installs, opens, runs and uninstalls the .deb on Ubuntu, the .rpm on Fedora and the AppImage, on x64 and Arm64
+- [ ] Flathub
 
 ## Everywhere
 
@@ -53,7 +56,7 @@ macOS names whichever program asks for access. During development that is your t
 
 1. Bump `version:` in `app/pubspec.yaml`.
 2. On the Mac: `SIGN_ID="Developer ID Application: ..." scripts/build-mac.sh --dmg`.
-3. Build the Linux CLIs (`GOOS=linux`, amd64 and arm64, `-X main.version=...`). The Windows installers, zips and CLIs are built by the `windows` workflow when the tag is pushed, and attached to the release with their checksums.
+3. Build the Linux CLIs (`GOOS=linux`, amd64 and arm64, `-X main.version=...`). The Windows installers, zips and CLIs are built by the `windows` workflow, and the Linux AppImages, .deb and .rpm by the `linux` workflow, when the tag is pushed; both attach their files to the release and add them to its checksums.
 4. Write `checksums-<version>.txt` covering every file (`shasum -a 256`). The in-app updater refuses a DMG that is not listed in it.
 5. Tag `v<version>`, then `gh release create v<version>` with the DMG, the CLIs and the checksums file.
 6. Update the cask and formula in `herocodess/homebrew-tap` (version and sha256), and `bucket/mothball.json` in `herocodess/scoop-bucket` (version and the two zip hashes from the checksums file). From 0.1.1 on, the cask carries `auto_updates true`, since the app updates itself.
