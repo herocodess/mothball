@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'feedback.dart';
 import 'models.dart';
 import 'motion.dart';
 import 'theme.dart';
@@ -220,6 +221,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onPressed: _checking ? null : _checkNow,
                             child: Text(_checking ? 'Checking…' : 'Check now'),
                           ),
+                      ]),
+                    ),
+                  ])),
+                  staggered(_Group(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('Send feedback', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Found a bug, or a stack Mothball misses? This opens a GitHub issue with your Mothball version and system already filled in. Nothing is sent until you submit it.',
+                          style: TextStyle(color: quiet),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(spacing: 10, runSpacing: 10, children: [
+                          OutlinedButton.icon(
+                            onPressed: () => MothballApi.openUrl(FeedbackLinks.bugReport(widget.version)),
+                            icon: const Icon(Icons.bug_report_outlined, size: 18),
+                            label: const Text('Report a problem'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => MothballApi.openUrl(FeedbackLinks.newStack(widget.version)),
+                            icon: const Icon(Icons.add_circle_outline, size: 18),
+                            label: const Text('Suggest a stack or cache'),
+                          ),
+                        ]),
                       ]),
                     ),
                   ])),
