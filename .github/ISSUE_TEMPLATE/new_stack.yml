@@ -1,0 +1,76 @@
+name: New stack or cache
+description: Something regenerable is taking space and Mothball doesn't know about it yet.
+title: "Support: "
+labels: [stack]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Mothball only clears things that can be rebuilt or downloaded again. These answers are everything needed to decide whether it fits and to write the rule.
+
+        Want to add it yourself? Each stack is one file; see [docs/rule-packs.md](https://github.com/herocodess/mothball/blob/main/docs/rule-packs.md).
+  - type: input
+    id: what
+    attributes:
+      label: Stack, tool or app
+      placeholder: Bazel, Docker build cache, JetBrains IDEs…
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: What's taking the space?
+      description: The folder, either inside each project or a cache in your home folder.
+      placeholder: |
+        Inside each project: bazel-out/
+        or a cache: ~/Library/Caches/JetBrains
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: How big does it get?
+      placeholder: About 4 GB per project
+    validations:
+      required: false
+  - type: textarea
+    id: rebuild
+    attributes:
+      label: How is it rebuilt?
+      description: The command that brings it back, or "downloads again automatically".
+      placeholder: bazel build //...
+    validations:
+      required: true
+  - type: textarea
+    id: detect
+    attributes:
+      label: How can Mothball tell it's this kind of project?
+      description: A file that's always there, for example package.json, Cargo.toml or WORKSPACE. Leave empty for a cache.
+    validations:
+      required: false
+  - type: textarea
+    id: careful
+    attributes:
+      label: Anything that must never be touched?
+      description: Folders with similar names that hold real work, settings or credentials.
+    validations:
+      required: false
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS, Windows, Linux, or all
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Mothball version
+    validations:
+      required: false
+  - type: input
+    id: chip
+    attributes:
+      label: Chip
+    validations:
+      required: false
