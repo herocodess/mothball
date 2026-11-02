@@ -16,12 +16,14 @@ import (
 	"time"
 
 	"github.com/herocodess/mothball/core/history"
+	"github.com/herocodess/mothball/core/label"
 	"github.com/herocodess/mothball/core/pack"
 )
 
 // Project is one project with output currently put away.
 type Project struct {
 	Path     string          `json:"path"`
+	Name     string          `json:"name"`     // label that tells projects apart, see core/label
 	Since    time.Time       `json:"since"`    // when the oldest missing output was put away
 	Bytes    int64           `json:"bytes"`    // size of what was put away
 	Missing  []string        `json:"missing"`  // output folders not back yet
@@ -58,7 +60,7 @@ func Mothballed(entries []history.Entry, packs *pack.Set) []Project {
 		}
 		p := byProject[e.Project]
 		if p == nil {
-			p = &Project{Path: e.Project, Since: e.Time}
+			p = &Project{Path: e.Project, Name: label.Project(e.Project), Since: e.Time}
 			byProject[e.Project] = p
 		}
 		if e.Time.Before(p.Since) {

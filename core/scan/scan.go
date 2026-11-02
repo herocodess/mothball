@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/herocodess/mothball/core/access"
+	"github.com/herocodess/mothball/core/label"
 	"github.com/herocodess/mothball/core/pack"
 )
 
@@ -21,6 +22,7 @@ const IgnoreFile = ".mothballignore"
 type Candidate struct {
 	Path     string    `json:"path"`
 	Project  string    `json:"project"`
+	Name     string    `json:"name"` // label that tells projects apart, see core/label
 	Pack     string    `json:"pack"`
 	Output   string    `json:"output"` // the pack's output path, relative to Project
 	Bytes    int64     `json:"bytes"`
@@ -191,6 +193,7 @@ func (s *Scanner) candidate(project, full, rel string, p *pack.Pack, now time.Ti
 	return Candidate{
 		Path:     full,
 		Project:  project,
+		Name:     label.Project(project),
 		Pack:     p.ID,
 		Output:   rel,
 		LastWork: last,
