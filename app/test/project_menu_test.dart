@@ -53,6 +53,7 @@ void main() {
       home: Scaffold(
         body: Builder(
           builder: (context) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onSecondaryTapUp: (d) => ProjectMenu.showAt(context, d.globalPosition, '/tmp/x'),
             child: const SizedBox.expand(),
           ),
