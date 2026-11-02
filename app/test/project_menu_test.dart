@@ -59,7 +59,7 @@ void main() {
         ),
       ),
     ));
-    await t.tapAt(const Offset(100, 100), buttons: kSecondaryButton);
+    await t.tapAt(const Offset(100, 100), buttons: kSecondaryButton, kind: PointerDeviceKind.mouse);
     await t.pumpAndSettle();
     expect(find.text('Copy path'), findsOneWidget);
     expect(t.getTopLeft(find.text('Copy path')).dx, greaterThan(100));
