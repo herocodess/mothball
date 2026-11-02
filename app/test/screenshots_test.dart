@@ -34,6 +34,8 @@ Map<String, dynamic> sample({required bool fullDisk, required bool onboarded}) {
   Map<String, dynamic> cand(String project, String out, String pack, int gb10, int idle) => {
         'path': '/Users/hero/dev/$project/$out',
         'project': '/Users/hero/dev/$project',
+        // As core/label names them: the repository, then the folder inside it.
+        'name': project.contains('/') ? project.replaceFirst('/', ' › ') : project,
         'pack': pack,
         'bytes': gb10 * 107374182,
         'idleDays': idle,
@@ -82,8 +84,8 @@ Map<String, dynamic> sample({required bool fullDisk, required bool onboarded}) {
       'cacheBytes': 26306674688,
     },
     'mothballed': [
-      {'path': '/Users/hero/dev/kuvori-mobile', 'since': '2026-10-02T10:00:00Z', 'bytes': 860000000, 'returned': true, 'commands': ['flutter pub get']},
-      {'path': '/Users/hero/dev/driftlog', 'since': '2026-09-20T10:00:00Z', 'bytes': 1240000000, 'returned': false, 'commands': ['pnpm install']},
+      {'path': '/Users/hero/dev/kuvori-mobile', 'name': 'kuvori-mobile', 'since': '2026-10-02T10:00:00Z', 'bytes': 860000000, 'returned': true, 'commands': ['flutter pub get']},
+      {'path': '/Users/hero/dev/driftlog', 'name': 'driftlog', 'since': '2026-09-20T10:00:00Z', 'bytes': 1240000000, 'returned': false, 'commands': ['pnpm install']},
     ],
     'events': [
       {'at': '2026-10-30T09:00:00Z', 'kind': 'autopilot', 'message': 'Put away build output from idle projects; it is emptied from the Trash after the grace period', 'bytes': 9126805504},

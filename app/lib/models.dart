@@ -14,6 +14,7 @@ class Candidate {
   Candidate({
     required this.path,
     required this.project,
+    this.name = '',
     required this.pack,
     required this.bytes,
     required this.idleDays,
@@ -24,6 +25,7 @@ class Candidate {
   factory Candidate.fromJson(Map<String, dynamic> j) => Candidate(
         path: _str(j['path']),
         project: _str(j['project']),
+        name: _str(j['name']),
         pack: _str(j['pack']),
         bytes: _int(j['bytes']),
         idleDays: _int(j['idleDays']),
@@ -33,6 +35,10 @@ class Candidate {
 
   final String path;
   final String project;
+
+  /// Label that tells projects apart, like "InviteNaija › apps/web". Empty
+  /// from services older than 0.1.5.
+  final String name;
   final String pack;
   final int bytes;
   final int idleDays;
@@ -104,6 +110,7 @@ class ScanSummary {
 class MothballedProject {
   MothballedProject({
     required this.path,
+    this.name = '',
     required this.since,
     required this.bytes,
     required this.returned,
@@ -112,6 +119,7 @@ class MothballedProject {
 
   factory MothballedProject.fromJson(Map<String, dynamic> j) => MothballedProject(
         path: _str(j['path']),
+        name: _str(j['name']),
         since: _time(j['since']),
         bytes: _int(j['bytes']),
         returned: _bool(j['returned']),
@@ -119,6 +127,7 @@ class MothballedProject {
       );
 
   final String path;
+  final String name;
   final DateTime? since;
   final int bytes;
   final bool returned;

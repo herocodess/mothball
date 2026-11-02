@@ -9,6 +9,7 @@ import 'api.dart';
 import 'logo.dart';
 import 'models.dart';
 import 'motion.dart';
+import 'places.dart';
 import 'settings.dart';
 import 'theme.dart';
 import 'update.dart';
@@ -802,8 +803,13 @@ class _IdleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final quiet = MB.quiet(context);
+    final title = c.name.isNotEmpty ? c.name : _projectLabel(c.project);
     return Hoverable(
-      builder: (context, hover) => AnimatedContainer(
+      builder: (context, hover) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onDoubleTap: () => Places.open(c.project),
+        onSecondaryTapUp: (d) => ProjectMenu.showAt(context, d.globalPosition, c.project),
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
@@ -816,13 +822,15 @@ class _IdleRow extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Flexible(
-                  child: Text(_projectLabel(c.project),
+                  child: Text(title,
                       overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                 ),
                 const SizedBox(width: 8),
                 _Chip(_outputLabel(c)),
               ]),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
+              _PathLine(c.project),
+              const SizedBox(height: 3),
               Text('${c.pack} · idle ${c.idleDays} days', style: TextStyle(fontSize: 13, color: quiet)),
             ]),
           ),
@@ -851,9 +859,34 @@ class _IdleRow extends StatelessWidget {
           AnimatedOpacity(
             opacity: hover ? 1 : 0.45,
             duration: const Duration(milliseconds: 180),
-            child: IconButton(tooltip: 'Put away', onPressed: onPutAway, icon: const Icon(Icons.inventory_2_outlined, size: 20)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              ProjectMenu(path: c.project),
+              IconButton(tooltip: 'Put away', onPressed: onPutAway, icon: const Icon(Icons.inventory_2_outlined, size: 20)),
+            ]),
           ),
         ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// The project's folder, shortened, with the full path on hover.
+class _PathLine extends StatelessWidget {
+  const _PathLine(this.path);
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: path,
+      waitDuration: const Duration(milliseconds: 500),
+      child: Text(
+        Places.display(path),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: 12.5, color: MB.quiet(context), fontFamily: 'Menlo', fontFamilyFallback: const ['Consolas', 'DejaVu Sans Mono', 'monospace']),
       ),
     );
   }
@@ -1058,23 +1091,33 @@ class _MothballedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final quiet = MB.quiet(context);
-    final row = Row(children: [
+    final row = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onDoubleTap: () => Places.open(p.path),
+      onSecondaryTapUp: (d) => ProjectMenu.showAt(context, d.globalPosition, p.path),
+      child: Row(children: [
       MothLogo(size: 26, alive: p.returned, ink: p.returned ? null : quiet),
       const SizedBox(width: 14),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(_name(p.path), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-          const SizedBox(height: 2),
+          Text(p.name.isNotEmpty ? p.name : _name(p.path),
+              overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          const SizedBox(height: 3),
+          _PathLine(p.path),
+          const SizedBox(height: 3),
           Text(
             p.returned ? "You're back on this one. Wake it to rebuild." : '${humanBytes(p.bytes)} put away',
             style: TextStyle(fontSize: 13, color: p.returned ? MB.accentOn(context) : quiet),
           ),
         ]),
       ),
+      ProjectMenu(path: p.path),
+      const SizedBox(width: 4),
       p.returned
           ? FilledButton(onPressed: onWake, child: const Text('Wake'))
           : OutlinedButton(onPressed: onWake, child: const Text('Wake')),
-    ]);
+    ]),
+    );
     if (!p.returned) {
       return Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: row);
     }
