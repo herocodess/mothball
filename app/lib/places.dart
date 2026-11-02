@@ -55,7 +55,7 @@ class ProjectMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<_Action>(
+    return PopupMenuButton<ProjectAction>(
       tooltip: 'More',
       icon: const Icon(Icons.more_horiz, size: 20),
       position: PopupMenuPosition.under,
@@ -64,9 +64,9 @@ class ProjectMenu extends StatelessWidget {
     );
   }
 
-  static List<PopupMenuEntry<_Action>> get items => [
+  static List<PopupMenuEntry<ProjectAction>> get items => [
         PopupMenuItem(
-          value: _Action.open,
+          value: ProjectAction.open,
           child: Row(children: [
             const Icon(Icons.folder_open_outlined, size: 18),
             const SizedBox(width: 12),
@@ -74,7 +74,7 @@ class ProjectMenu extends StatelessWidget {
           ]),
         ),
         const PopupMenuItem(
-          value: _Action.copy,
+          value: ProjectAction.copy,
           child: Row(children: [
             Icon(Icons.copy_outlined, size: 18),
             SizedBox(width: 12),
@@ -86,7 +86,7 @@ class ProjectMenu extends StatelessWidget {
   /// The same menu, opened where the pointer is (for a right-click).
   static Future<void> showAt(BuildContext context, Offset global, String path) async {
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final a = await showMenu<_Action>(
+    final a = await showMenu<ProjectAction>(
       context: context,
       position: RelativeRect.fromRect(global & const Size(1, 1), Offset.zero & overlay.size),
       items: items,
@@ -94,11 +94,11 @@ class ProjectMenu extends StatelessWidget {
     if (a != null && context.mounted) await run(context, a, path);
   }
 
-  static Future<void> run(BuildContext context, _Action a, String path) async {
+  static Future<void> run(BuildContext context, ProjectAction a, String path) async {
     switch (a) {
-      case _Action.open:
+      case ProjectAction.open:
         await Places.open(path);
-      case _Action.copy:
+      case ProjectAction.copy:
         await Clipboard.setData(ClipboardData(text: path));
         if (context.mounted) {
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(
@@ -109,4 +109,5 @@ class ProjectMenu extends StatelessWidget {
   }
 }
 
-enum _Action { open, copy }
+/// What the project menu can do.
+enum ProjectAction { open, copy }
