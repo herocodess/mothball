@@ -1,5 +1,6 @@
-// Package caches handles shared developer caches that live outside projects:
-// package manager downloads, Xcode build data, simulators and the like.
+// Package caches handles shared caches that live outside projects: package
+// manager downloads, Xcode build data, simulators, and the throwaway caches of
+// everyday apps like browsers and chat apps.
 //
 // Each cache is cleaned the safest way available: through the tool's own
 // command when it has one, otherwise by moving the folder to the Trash with a
@@ -241,14 +242,16 @@ var defs = []*def{
 	},
 	{
 		id: "vscode", name: "VS Code caches", policy: Auto,
-		how:     "Moves VS Code's web caches to the Trash while VS Code is closed.",
-		paths:   func(e env) []string { return electron(e, "Code") },
+		how:     "Moves VS Code's web caches and downloaded extension packages to the Trash while VS Code is closed. Installed extensions keep working.",
+		paths:   func(e env) []string { return append(electron(e, "Code"), e.appSupport("Code", "CachedExtensionVSIXs")) },
 		running: []string{"Code", "Electron", "code"}, emptyOnly: true,
 	},
 	{
 		id: "cursor", name: "Cursor caches", policy: Auto,
-		how:     "Moves Cursor's web caches to the Trash while Cursor is closed.",
-		paths:   func(e env) []string { return electron(e, "Cursor") },
+		how: "Moves Cursor's web caches and downloaded extension packages to the Trash while Cursor is closed. Installed extensions keep working.",
+		paths: func(e env) []string {
+			return append(electron(e, "Cursor"), e.appSupport("Cursor", "CachedExtensionVSIXs"))
+		},
 		running: []string{"Cursor"}, emptyOnly: true,
 	},
 	{
@@ -257,6 +260,144 @@ var defs = []*def{
 		paths:   func(e env) []string { return electron(e, "Slack") },
 		running: []string{"Slack", "slack"}, emptyOnly: true,
 	},
+
+	// Everyday apps. Only the folders each app rebuilds on its own: never
+	// profiles, sign-ins, history, bookmarks, messages or downloads.
+	{
+		id: "chrome", name: "Chrome cache", policy: Auto,
+		how:     "Moves Chrome's page cache to the Trash while Chrome is closed. Bookmarks, history, passwords and sign-ins are not touched.",
+		paths:   func(e env) []string { return chromium(e, "Google/Chrome", "google-chrome", "Google/Chrome") },
+		running: []string{"Google Chrome", "chrome"}, emptyOnly: true,
+	},
+	{
+		id: "edge", name: "Edge cache", policy: Auto,
+		how:     "Moves Edge's page cache to the Trash while Edge is closed. Favourites, history, passwords and sign-ins are not touched.",
+		paths:   func(e env) []string { return chromium(e, "Microsoft Edge", "microsoft-edge", "Microsoft/Edge") },
+		running: []string{"Microsoft Edge", "msedge"}, emptyOnly: true,
+	},
+	{
+		id: "brave", name: "Brave cache", policy: Auto,
+		how: "Moves Brave's page cache to the Trash while Brave is closed. Bookmarks, history, passwords and sign-ins are not touched.",
+		paths: func(e env) []string {
+			return chromium(e, "BraveSoftware/Brave-Browser", "BraveSoftware/Brave-Browser", "BraveSoftware/Brave-Browser")
+		},
+		running: []string{"Brave Browser", "brave"}, emptyOnly: true,
+	},
+	{
+		id: "firefox", name: "Firefox cache", policy: Auto,
+		how:     "Moves Firefox's page cache to the Trash while Firefox is closed. Bookmarks, history, passwords and sign-ins are not touched.",
+		paths:   firefox,
+		running: []string{"firefox"}, emptyOnly: true,
+	},
+	{
+		id: "teams", name: "Microsoft Teams cache", policy: Auto,
+		how:     "Moves Teams' cached app files to the Trash while Teams is closed. Chats and sign-in are not touched; Teams downloads what it needs on the next start.",
+		paths:   teams,
+		running: []string{"MSTeams", "ms-teams"}, emptyOnly: true,
+	},
+	{
+		id: "discord", name: "Discord cache", policy: Auto,
+		how:     "Moves Discord's web caches to the Trash while Discord is closed.",
+		paths:   func(e env) []string { return electron(e, "discord") },
+		running: []string{"Discord", "discord"}, emptyOnly: true,
+	},
+	{
+		id: "notion", name: "Notion cache", policy: Auto,
+		how:     "Moves Notion's web caches to the Trash while Notion is closed. Your pages live in Notion and are not touched.",
+		paths:   func(e env) []string { return electron(e, "Notion") },
+		running: []string{"Notion"}, emptyOnly: true,
+	},
+	{
+		id: "figma", name: "Figma cache", policy: Auto,
+		how:     "Moves the Figma app's web caches to the Trash while Figma is closed. Your files live in Figma and are not touched.",
+		paths:   func(e env) []string { return electron(e, "Figma") },
+		running: []string{"Figma"}, emptyOnly: true,
+	},
+	{
+		id: "obsidian", name: "Obsidian cache", policy: Auto,
+		how:     "Moves Obsidian's web caches to the Trash while Obsidian is closed. Your vaults are not touched.",
+		paths:   func(e env) []string { return electron(e, "obsidian") },
+		running: []string{"Obsidian"}, emptyOnly: true,
+	},
+	{
+		id: "claude", name: "Claude app cache", policy: Auto,
+		how:     "Moves the Claude desktop app's web caches to the Trash while it is closed. Chats and settings are not touched.",
+		paths:   func(e env) []string { return electron(e, "Claude") },
+		running: []string{"Claude"}, emptyOnly: true,
+	},
+}
+
+// chromium lists the page caches of a Chromium-based browser in every
+// profile. On macOS and Linux they live in a cache folder of their own; on
+// Windows they sit inside each profile, next to things that must stay, so only
+// the cache folders by name are listed. Names use forward slashes.
+func chromium(e env, mac, linux, windows string) []string {
+	var base string
+	switch e.goos {
+	case "darwin":
+		base = e.j("Library", "Caches", filepath.FromSlash(mac))
+	case "windows":
+		base = e.local(filepath.FromSlash(windows), "User Data")
+	default:
+		base = e.xdgCache(filepath.FromSlash(linux))
+	}
+	return inProfiles(base, "Cache", "Code Cache", "GPUCache")
+}
+
+// firefox lists Firefox's page cache in every profile. Its local profile
+// folders hold only caches; bookmarks and passwords live elsewhere.
+func firefox(e env) []string {
+	var base string
+	switch e.goos {
+	case "darwin":
+		base = e.j("Library", "Caches", "Firefox", "Profiles")
+	case "windows":
+		base = e.local("Mozilla", "Firefox", "Profiles")
+	default:
+		base = e.xdgCache("mozilla", "firefox")
+	}
+	return inProfiles(base, "cache2")
+}
+
+// teams lists the cache folders of the new Microsoft Teams app.
+func teams(e env) []string {
+	var data, web string
+	switch e.goos {
+	case "darwin":
+		lib := e.j("Library", "Containers", "com.microsoft.teams2", "Data", "Library")
+		data = filepath.Join(lib, "Caches")
+		web = filepath.Join(lib, "Application Support", "Microsoft", "MSTeams", "EBWebView", "WV2Profile_tfw")
+	case "windows":
+		web = e.local("Packages", "MSTeams_8wekyb3d8bbwe", "LocalCache", "Microsoft", "MSTeams", "EBWebView", "WV2Profile_tfw")
+	default:
+		return nil
+	}
+	var out []string
+	if data != "" {
+		out = append(out, data)
+	}
+	for _, d := range []string{"Cache", "Code Cache", "GPUCache", filepath.Join("Service Worker", "CacheStorage"), filepath.Join("Service Worker", "ScriptCache")} {
+		out = append(out, filepath.Join(web, d))
+	}
+	return out
+}
+
+// inProfiles lists the named folders inside each profile folder of base.
+func inProfiles(base string, names ...string) []string {
+	profiles, err := os.ReadDir(base)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, p := range profiles {
+		if !p.IsDir() {
+			continue
+		}
+		for _, n := range names {
+			out = append(out, filepath.Join(base, p.Name(), n))
+		}
+	}
+	return out
 }
 
 // electron lists the throwaway cache folders of an Electron app.
@@ -565,7 +706,13 @@ func running(names []string) string {
 			}
 			continue
 		}
-		cmd = proc.Command("pgrep", "-x", n)
+		args := []string{"-x", n}
+		if runtime.GOOS == "darwin" {
+			// macOS pgrep skips its own ancestors unless told not to, so an app
+			// that launched Mothball (a terminal, an editor) would look closed.
+			args = []string{"-a", "-x", n}
+		}
+		cmd = proc.Command("pgrep", args...)
 		if err := cmd.Run(); err == nil {
 			return n
 		}

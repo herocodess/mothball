@@ -47,7 +47,8 @@ Each stack is a small rule pack, so adding a new one is a single pull request. 2
 | .NET and functional | C#, F#, VB, Elixir, Erlang, Haskell |
 | Games | Unity, Unreal Engine, Godot |
 | Infra | Terraform |
-| Global caches | Xcode DerivedData, simulators, device support, npm, pnpm, yarn, bun, pip, uv, CocoaPods, Homebrew, Gradle, Go modules, Dart and Flutter packages, VS Code, Cursor and Slack caches |
+| Global caches | Xcode DerivedData, simulators, device support, npm, pnpm, yarn, bun, pip, uv, CocoaPods, Homebrew, Gradle, Go modules, Dart and Flutter packages, VS Code and Cursor caches and extension downloads |
+| Everyday apps | Page caches of Chrome, Edge, Brave and Firefox; web caches of Slack, Microsoft Teams, Discord, Notion, Figma, Obsidian and the Claude app. Never bookmarks, history, passwords, sign-ins, messages or downloads |
 
 Caches are cleaned through each tool's own command where there is one (`npm cache clean`, `pod cache clean`, `brew cleanup`), otherwise moved to the Trash, and never while the tool that owns them is running. Cargo and Android emulators are shown for information only.
 
@@ -145,7 +146,7 @@ Available now: everything below.
 mothball scan                # what is reclaimable, by project
 mothball clean --dry-run     # preview exactly what would move to the Trash
 mothball clean               # do it
-mothball caches              # shared tool caches and their sizes
+mothball caches              # shared tool and app caches and their sizes
 mothball caches clean --safe # clean every cache that only costs a re-download
 mothball wake                # list mothballed projects
 mothball wake ~/dev/my-app   # restore one, with its stack's install command
