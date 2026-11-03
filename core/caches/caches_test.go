@@ -212,3 +212,140 @@ func TestSafeTarget(t *testing.T) {
 		t.Fatal("safe target refused")
 	}
 }
+
+// mustExist fails when a file that must survive cleaning is gone.
+func mustExist(t *testing.T, p string) {
+	t.Helper()
+	if _, err := os.Stat(p); err != nil {
+		t.Fatalf("%s should not have been touched: %v", p, err)
+	}
+}
+
+func TestChromeCleansOnlyCachesInEveryProfile(t *testing.T) {
+	k := newKit(t, "darwin")
+	base := filepath.Join(k.Home, "Library/Caches/Google/Chrome")
+	file(t, filepath.Join(base, "Default/Cache/Cache_Data/a"), 3000, time.Time{})
+	file(t, filepath.Join(base, "Default/Code Cache/js/b"), 2000, time.Time{})
+	file(t, filepath.Join(base, "Profile 12/Cache/c"), 1000, time.Time{})
+	keep := filepath.Join(base, "Default/Storage/ext/d") // not a cache we name
+	file(t, keep, 500, time.Time{})
+
+	c, ok := find(k.Survey(), "chrome")
+	if !ok || c.Bytes != 6000 {
+		t.Fatalf("chrome = %+v, found %v", c, ok)
+	}
+	if moved, err := k.Clean(c); err != nil || moved != 6000 {
+		t.Fatalf("moved %d, %v", moved, err)
+	}
+	mustExist(t, keep)
+	mustExist(t, filepath.Join(base, "Default/Cache")) // the folder stays, emptied
+}
+
+func TestChromeOnWindowsLeavesTheProfileAlone(t *testing.T) {
+	k := newKit(t, "windows")
+	profile := filepath.Join(k.Home, "AppData/Local/Google/Chrome/User Data/Default")
+	file(t, filepath.Join(profile, "Cache/Cache_Data/a"), 4000, time.Time{})
+	for _, f := range []string{"Bookmarks", "Login Data", "History", "Preferences"} {
+		file(t, filepath.Join(profile, f), 100, time.Time{})
+	}
+	c, ok := find(k.Survey(), "chrome")
+	if !ok || c.Bytes != 4000 {
+		t.Fatalf("chrome = %+v, found %v", c, ok)
+	}
+	if _, err := k.Clean(c); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"Bookmarks", "Login Data", "History", "Preferences"} {
+		mustExist(t, filepath.Join(profile, f))
+	}
+}
+
+func TestBrowserBlocksWhileOpen(t *testing.T) {
+	k := newKit(t, "darwin")
+	file(t, filepath.Join(k.Home, "Library/Caches/Google/Chrome/Default/Cache/a"), 10, time.Time{})
+	k.running["Google Chrome"] = true
+	c, _ := find(k.Survey(), "chrome")
+	if c.Blocked != "Google Chrome is running" {
+		t.Fatalf("blocked = %q", c.Blocked)
+	}
+	if _, err := k.Clean(c); err == nil {
+		t.Fatal("cleaned while Chrome was open")
+	}
+}
+
+func TestTeamsKeepsChatsAndSignIn(t *testing.T) {
+	k := newKit(t, "darwin")
+	lib := filepath.Join(k.Home, "Library/Containers/com.microsoft.teams2/Data/Library")
+	web := filepath.Join(lib, "Application Support/Microsoft/MSTeams/EBWebView/WV2Profile_tfw")
+	file(t, filepath.Join(web, "Service Worker/CacheStorage/x/a"), 5000, time.Time{})
+	file(t, filepath.Join(web, "GPUCache/b"), 100, time.Time{})
+	file(t, filepath.Join(lib, "Caches/c"), 200, time.Time{})
+	keep := []string{
+		filepath.Join(web, "IndexedDB/chats"),
+		filepath.Join(web, "Local Storage/leveldb/token"),
+		filepath.Join(web, "Service Worker/Database/registrations"),
+	}
+	for _, p := range keep {
+		file(t, p, 50, time.Time{})
+	}
+	c, ok := find(k.Survey(), "teams")
+	if !ok || c.Bytes != 5300 {
+		t.Fatalf("teams = %+v, found %v", c, ok)
+	}
+	if _, err := k.Clean(c); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range keep {
+		mustExist(t, p)
+	}
+}
+
+func TestFirefoxOnLinux(t *testing.T) {
+	k := newKit(t, "linux")
+	base := filepath.Join(k.Home, ".cache/mozilla/firefox/abc.default-release")
+	file(t, filepath.Join(base, "cache2/entries/a"), 700, time.Time{})
+	keep := filepath.Join(base, "startupCache/s")
+	file(t, keep, 10, time.Time{})
+	c, ok := find(k.Survey(), "firefox")
+	if !ok || c.Bytes != 700 {
+		t.Fatalf("firefox = %+v, found %v", c, ok)
+	}
+	if _, err := k.Clean(c); err != nil {
+		t.Fatal(err)
+	}
+	mustExist(t, keep)
+}
+
+func TestVSCodeExtensionDownloadsButNotSettings(t *testing.T) {
+	k := newKit(t, "darwin")
+	code := filepath.Join(k.Home, "Library/Application Support/Code")
+	file(t, filepath.Join(code, "CachedExtensionVSIXs/ms-python.python-1.0"), 9000, time.Time{})
+	file(t, filepath.Join(code, "Cache/a"), 100, time.Time{})
+	keep := filepath.Join(code, "User/settings.json")
+	file(t, keep, 10, time.Time{})
+	c, ok := find(k.Survey(), "vscode")
+	if !ok || c.Bytes != 9100 {
+		t.Fatalf("vscode = %+v, found %v", c, ok)
+	}
+	if _, err := k.Clean(c); err != nil {
+		t.Fatal(err)
+	}
+	mustExist(t, keep)
+}
+
+func TestEverydayCachesAreSafeToAutoClean(t *testing.T) {
+	for _, id := range []string{"chrome", "edge", "brave", "firefox", "teams", "discord", "notion", "figma", "obsidian", "claude"} {
+		var d *def
+		for _, x := range defs {
+			if x.id == id {
+				d = x
+			}
+		}
+		if d == nil {
+			t.Fatalf("%s missing", id)
+		}
+		if !d.emptyOnly || len(d.running) == 0 || d.cmd != nil {
+			t.Errorf("%s: must empty folders only, and only while the app is closed", id)
+		}
+	}
+}

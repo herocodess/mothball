@@ -72,7 +72,7 @@ type ScanSummary struct {
 	IdleBytes  int64            `json:"idleBytes"`
 	Active     []scan.Candidate `json:"active"`
 	ActiveSize int64            `json:"activeBytes"`
-	// Caches are shared tool caches outside projects, largest first.
+	// Caches are shared tool and app caches outside projects, largest first.
 	Caches []caches.Cache `json:"caches"`
 	// CacheBytes is what can be cleaned from caches right now.
 	CacheBytes int64 `json:"cacheBytes"`
@@ -422,7 +422,7 @@ func (s *Service) Tick() {
 		fromCaches += n
 	}
 	if fromCaches > 0 {
-		s.event("autopilot", "Cleaned tool caches that download again when needed", fromCaches)
+		s.event("autopilot", "Cleaned caches that download again when needed", fromCaches)
 	}
 	if moved+fromCaches == 0 {
 		s.event("autopilot", "Free space is below target, but there is nothing idle or cached to put away", 0)

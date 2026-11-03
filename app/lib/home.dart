@@ -947,7 +947,7 @@ class _CachesPanel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _SectionHeader(
-          title: 'Tool caches',
+          title: 'Caches',
           subtitle: '${humanBytes(total)} can be cleaned · everything here downloads or rebuilds again when needed',
         ),
         const SizedBox(height: 18),
