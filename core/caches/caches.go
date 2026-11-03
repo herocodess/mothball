@@ -706,7 +706,13 @@ func running(names []string) string {
 			}
 			continue
 		}
-		cmd = proc.Command("pgrep", "-x", n)
+		args := []string{"-x", n}
+		if runtime.GOOS == "darwin" {
+			// macOS pgrep skips its own ancestors unless told not to, so an app
+			// that launched Mothball (a terminal, an editor) would look closed.
+			args = []string{"-a", "-x", n}
+		}
+		cmd = proc.Command("pgrep", args...)
 		if err := cmd.Run(); err == nil {
 			return n
 		}
