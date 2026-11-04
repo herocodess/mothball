@@ -161,6 +161,8 @@ Keep a project out of it forever by adding a `.mothballignore` file to its root.
 
 New stack? Add a rule pack with its detect file, output folders, verification check and wake command, plus a fixture project that proves it never touches source. See `CONTRIBUTING.md`.
 
+How the pieces fit together, with diagrams: [`docs/architecture.md`](docs/architecture.md).
+
 ## License
 
 MIT
