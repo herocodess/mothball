@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'access.dart';
 import 'api.dart';
+import 'language.dart';
 import 'logo.dart';
 import 'models.dart';
 import 'motion.dart';
@@ -56,11 +57,12 @@ class _HomeScreenState extends State<HomeScreen> {
         st = await widget.api.status();
       }
       if (justGranted || (scanIfNeeded && st.lastScan == null)) {
-        await _run('Looking through your projects', () => widget.api.scan());
+        if (mounted) await _run(context.t.busyScanning, () => widget.api.scan());
         st = await widget.api.status();
       }
       if (mounted) {
         appearance.value = themeModeOf(st.config.theme);
+        language.value = st.config.language;
         setState(() {
           _status = st;
           _offline = null;
@@ -114,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _scan() async {
-    await _run('Looking through your projects', () => widget.api.scan());
+    await _run(context.t.busyScanning, () => widget.api.scan());
     await _refresh();
   }
 
@@ -123,28 +125,25 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Put away ${humanBytes(total)}?'),
+        title: Text(ctx.t.putAwayTitle(sizeOf(ctx, total))),
         content: SizedBox(
           width: 420,
-          child: Text(
-            '${items.length == 1 ? 'This folder moves' : '${items.length} folders move'} to the $trashName. '
-            'Your code is never touched, and any project can be woken later with its usual install command.',
-          ),
+          child: Text(ctx.t.putAwayBody(items.length, toTrash(ctx))),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Put away')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ctx.t.putAway)),
         ],
       ),
     );
-    if (ok != true) return;
-    final res = await _run('Putting away', () => widget.api.clean(items.map((c) => c.path).toList()));
-    if (res == null) return;
+    if (ok != true || !mounted) return;
+    final res = await _run(context.t.busyPuttingAway, () => widget.api.clean(items.map((c) => c.path).toList()));
+    if (res == null || !mounted) return;
     final moved = res.where((r) => r.moved).toList();
     final freed = moved.fold<int>(0, (s, r) => s + r.bytes);
     final left = res.length - moved.length;
-    _toast('Put away ${humanBytes(freed)}${left > 0 ? ', left $left alone' : ''}.');
+    _toast(context.t.putAwayResult(left, sizeOf(context, freed)));
     await _refresh();
   }
 
@@ -153,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Clean ${humanBytes(total)} of caches?'),
+        title: Text(ctx.t.cleanCachesTitle(sizeOf(ctx, total))),
         content: SizedBox(
           width: 460,
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -161,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${c.name} · ${humanBytes(c.bytes)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('${c.name} · ${sizeOf(ctx, c.bytes)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text(c.how, style: TextStyle(fontSize: 13, color: MB.quiet(ctx))),
                 ]),
@@ -170,17 +169,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Clean')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ctx.t.clean)),
         ],
       ),
     );
-    if (ok != true) return;
-    final res = await _run('Cleaning caches', () => widget.api.cleanCaches(items.map((c) => c.id).toList()));
-    if (res == null) return;
+    if (ok != true || !mounted) return;
+    final res = await _run(context.t.busyCleaningCaches, () => widget.api.cleanCaches(items.map((c) => c.id).toList()));
+    if (res == null || !mounted) return;
     final freed = res.fold<int>(0, (s, r) => s + r.bytes);
     final failed = res.where((r) => r.error.isNotEmpty).toList();
-    _toast(failed.isEmpty ? 'Cleaned ${humanBytes(freed)}.' : 'Cleaned ${humanBytes(freed)}. ${failed.first.name}: ${failed.first.error}');
+    _toast(failed.isEmpty
+        ? context.t.cleanedResult(sizeOf(context, freed))
+        : context.t.cleanedWithError(sizeOf(context, freed), failed.first.name, failed.first.error));
     await _refresh();
   }
 
@@ -188,26 +189,26 @@ class _HomeScreenState extends State<HomeScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Wake ${_name(p.path)}?'),
+        title: Text(ctx.t.wakeTitle(p.name.isNotEmpty ? p.name : _name(p.path))),
         content: SizedBox(
           width: 420,
           child: p.commands.isEmpty
-              ? const Text('This project rebuilds its output on its own the next time you open it.')
+              ? Text(ctx.t.wakeRebuildsItself)
               : Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Mothball will run this in the project folder:'),
+                  Text(ctx.t.wakeWillRun),
                   const SizedBox(height: 12),
                   for (final c in p.commands) _Code(c),
                 ]),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Wake')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ctx.t.wake)),
         ],
       ),
     );
-    if (ok != true) return;
-    await _run('Waking ${_name(p.path)}', () => widget.api.wake(p.path));
+    if (ok != true || !mounted) return;
+    await _run(context.t.busyWaking(p.name.isNotEmpty ? p.name : _name(p.path)), () => widget.api.wake(p.path));
     await _refresh();
   }
 
@@ -240,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _saveConfig(MothballConfig c) async {
-    await _run('Saving', () => widget.api.saveConfig(c));
+    await _run(context.t.busySaving, () => widget.api.saveConfig(c));
     await _refresh();
   }
 
@@ -363,7 +364,7 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 16, 6),
+      padding: const EdgeInsetsDirectional.fromSTEB(24, 18, 16, 6),
       child: Row(children: [
         MothLogo(size: 30, busy: busy),
         const SizedBox(width: 10),
@@ -375,11 +376,11 @@ class _TopBar extends StatelessWidget {
           child: Row(children: [
             const LiveDot(color: MB.accent, size: 6),
             const SizedBox(width: 4),
-            Text(busy ? 'Working' : 'Watching', style: TextStyle(color: MB.quiet(context), fontSize: 13)),
+            Text(busy ? context.t.statusWorking : context.t.statusWatching, style: TextStyle(color: MB.quiet(context), fontSize: 13)),
           ]),
         ),
         const SizedBox(width: 8),
-        IconButton(tooltip: 'Settings', onPressed: onSettings, icon: const Icon(Icons.tune_rounded)),
+        IconButton(tooltip: context.t.settings, onPressed: onSettings, icon: const Icon(Icons.tune_rounded)),
       ]),
     );
   }
@@ -410,7 +411,7 @@ class _BusyPill extends StatelessWidget {
             duration: const Duration(milliseconds: 260),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(14, 10, 18, 10),
+                padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 18, 10),
                 decoration: BoxDecoration(
                   color: dark ? const Color(0xFFEDEEEA) : MB.ink,
                   borderRadius: BorderRadius.circular(40),
@@ -520,17 +521,24 @@ class _SpacePanel extends StatelessWidget {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('FREE SPACE', style: TextStyle(fontSize: 11, letterSpacing: 1.4, fontWeight: FontWeight.w600, color: quiet)),
+              Builder(builder: (context) {
+                final (text, spacing) = MB.caps(context, context.t.freeSpace, 1.4);
+                return Text(text, style: TextStyle(fontSize: 11, letterSpacing: spacing, fontWeight: FontWeight.w600, color: quiet));
+              }),
               const SizedBox(height: 6),
-              Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                CountUp(
-                  value: gb,
-                  format: (v) => v >= 100 ? v.toStringAsFixed(0) : v.toStringAsFixed(1),
-                  style: MB.display(context, 72),
-                ),
-                const SizedBox(width: 10),
-                Text('GB', style: MB.display(context, 28, color: quiet)),
-              ]),
+              // The number and its unit read left to right in every language.
+              Directionality(
+                textDirection: TextDirection.ltr,
+                child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+                  CountUp(
+                    value: gb,
+                    format: (v) => decimal(context, v, digits: v >= 100 ? 0 : 1),
+                    style: MB.display(context, 72),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(context.t.unitGB, style: MB.display(context, 28, color: quiet)),
+                ]),
+              ),
             ]),
           ),
           _AutopilotToggle(config: st.config, onChanged: onAutopilot),
@@ -539,9 +547,9 @@ class _SpacePanel extends StatelessWidget {
         _SpaceBar(free: st.freeBytes, reclaim: reclaim, target: st.targetBytes, showTarget: st.config.autopilot),
         const SizedBox(height: 14),
         Wrap(spacing: 20, runSpacing: 8, children: [
-          const _Legend(color: MB.accent, label: 'Free now'),
-          if (reclaim > 0) _Legend(color: MB.accent, striped: true, label: '${humanBytes(reclaim)} you can get back'),
-          if (st.waitingBytes > 0) _Legend(color: quiet, label: '${humanBytes(st.waitingBytes)} waiting in the $trashName'),
+          _Legend(color: MB.accent, label: context.t.legendFreeNow),
+          if (reclaim > 0) _Legend(color: MB.accent, striped: true, label: context.t.legendCanGetBack(sizeOf(context, reclaim))),
+          if (st.waitingBytes > 0) _Legend(color: quiet, label: context.t.legendWaiting(sizeOf(context, st.waitingBytes), inTrash(context))),
         ]),
       ]),
     );
@@ -560,7 +568,7 @@ class _AutopilotToggle extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: ease,
-      padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 10, 12),
       decoration: BoxDecoration(
         color: on ? MB.accent.withValues(alpha: 0.10) : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
@@ -570,10 +578,11 @@ class _AutopilotToggle extends StatelessWidget {
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             if (on) ...[const LiveDot(color: MB.accent, size: 6), const SizedBox(width: 2)],
-            const Text('Autopilot', style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(context.t.autopilot, style: const TextStyle(fontWeight: FontWeight.w600)),
           ]),
           const SizedBox(height: 2),
-          Text(on ? 'Keeping ${config.targetFreeGB} GB free' : 'Off', style: TextStyle(fontSize: 13, color: MB.quiet(context))),
+          Text(on ? context.t.autopilotKeeping(gigabytes(context, config.targetFreeGB)) : context.t.off,
+              style: TextStyle(fontSize: 13, color: MB.quiet(context))),
         ]),
         const SizedBox(width: 12),
         Switch(value: on, onChanged: onChanged),
@@ -615,19 +624,20 @@ class _SpaceBar extends StatelessWidget {
                 decoration: BoxDecoration(color: MB.line(context), borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            Positioned(
+            PositionedDirectional(
               top: 8,
-              left: 0,
+              start: 0,
               width: freeW + reclaimW,
               height: 14,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: CustomPaint(painter: _Stripes(MB.accent, solidWidth: freeW)),
+                // The bar fills from the start side, so it mirrors in Arabic.
+                child: Transform.flip(flipX: context.rtl, child: CustomPaint(painter: _Stripes(MB.accent, solidWidth: freeW))),
               ),
             ),
             if (showTarget) ...[
-              Positioned(
-                left: targetX - 1,
+              PositionedDirectional(
+                start: targetX - 1,
                 top: 0,
                 width: 2,
                 height: 30,
@@ -635,11 +645,11 @@ class _SpaceBar extends StatelessWidget {
                   decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface, borderRadius: BorderRadius.circular(1)),
                 ),
               ),
-              Positioned(
-                left: targetX - 60,
+              PositionedDirectional(
+                start: targetX - 60,
                 width: 120,
                 top: 32,
-                child: Text('target ${humanBytes(target)}',
+                child: Text(context.t.spaceTarget(sizeOf(context, target)),
                     textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: MB.quiet(context))),
               ),
             ],
@@ -741,16 +751,16 @@ class _IdlePanel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _SectionHeader(
-          title: 'Idle projects',
+          title: context.t.idleProjects,
           subtitle: s == null
-              ? 'Not scanned yet'
+              ? context.t.notScannedYet
               : s.idle.isEmpty
-                  ? 'Nothing untouched for $idleDays+ days. ${plural(s.projects, 'project')} checked.'
-                  : 'Untouched for $idleDays+ days · ${humanBytes(s.idleBytes)} of build output in ${plural(s.idle.length, 'folder')}',
+                  ? context.t.idleNone('$idleDays', context.t.projectsCount(s.projects))
+                  : context.t.idleSummary('$idleDays', sizeOf(context, s.idleBytes), context.t.foldersCount(s.idle.length)),
           trailing: TextButton.icon(
             onPressed: scanning ? null : onScan,
             icon: Spin(spinning: scanning, child: const Icon(Icons.refresh_rounded, size: 18)),
-            label: const Text('Scan'),
+            label: Text(context.t.scan),
           ),
         ),
         AnimatedSize(
@@ -771,18 +781,18 @@ class _IdlePanel extends StatelessWidget {
                   if (s.idle.length > 50)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text('and ${s.idle.length - 50} more', style: TextStyle(color: MB.quiet(context))),
+                      child: Text(context.t.andMore('${s.idle.length - 50}'), style: TextStyle(color: MB.quiet(context))),
                     ),
                   const SizedBox(height: 18),
                   Row(children: [
                     FilledButton.icon(
                       onPressed: () => onPutAway(s.idle),
                       icon: const Icon(Icons.inventory_2_outlined, size: 18),
-                      label: Text('Put away all ${humanBytes(s.idleBytes)}'),
+                      label: Text(context.t.putAwayAll(sizeOf(context, s.idleBytes))),
                     ),
                     const SizedBox(width: 14),
                     Flexible(
-                      child: Text('Moves to the $trashName. Your code stays put.',
+                      child: Text(context.t.putAwayHint(toTrash(context)),
                           style: TextStyle(fontSize: 13, color: MB.quiet(context))),
                     ),
                   ]),
@@ -812,7 +822,7 @@ class _IdleRow extends StatelessWidget {
         child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 6, 10),
         decoration: BoxDecoration(
           color: hover ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
@@ -831,19 +841,19 @@ class _IdleRow extends StatelessWidget {
               const SizedBox(height: 3),
               _PathLine(c.project),
               const SizedBox(height: 3),
-              Text('${c.pack} · idle ${c.idleDays} days', style: TextStyle(fontSize: 13, color: quiet)),
+              Text(context.t.idleFor(c.idleDays, c.pack), style: TextStyle(fontSize: 13, color: quiet)),
             ]),
           ),
           const SizedBox(width: 16),
           SizedBox(
             width: 120,
             child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(humanBytes(c.bytes), style: const TextStyle(fontWeight: FontWeight.w500, fontFeatures: [FontFeature.tabularFigures()])),
+              Text(sizeOf(context, c.bytes), style: const TextStyle(fontWeight: FontWeight.w500, fontFeatures: [FontFeature.tabularFigures()])),
               const SizedBox(height: 6),
               Container(
                 width: double.infinity,
                 height: 4,
-                alignment: Alignment.centerRight,
+                alignment: AlignmentDirectional.centerEnd,
                 decoration: BoxDecoration(color: MB.line(context), borderRadius: BorderRadius.circular(3)),
                 child: FractionallySizedBox(
                   widthFactor: share.clamp(0.04, 1.0),
@@ -861,7 +871,7 @@ class _IdleRow extends StatelessWidget {
             duration: const Duration(milliseconds: 180),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               ProjectMenu(path: c.project),
-              IconButton(tooltip: 'Put away', onPressed: onPutAway, icon: const Icon(Icons.inventory_2_outlined, size: 20)),
+              IconButton(tooltip: context.t.putAway, onPressed: onPutAway, icon: const Icon(Icons.inventory_2_outlined, size: 20)),
             ]),
           ),
         ]),
@@ -886,6 +896,7 @@ class _PathLine extends StatelessWidget {
         Places.display(path),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+        textDirection: TextDirection.ltr,
         style: TextStyle(fontSize: 12.5, color: MB.quiet(context), fontFamily: 'Menlo', fontFamilyFallback: const ['Consolas', 'DejaVu Sans Mono', 'monospace']),
       ),
     );
@@ -925,7 +936,7 @@ class _Code extends StatelessWidget {
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(text, style: const TextStyle(fontFamily: 'Menlo', fontSize: 13)),
+      child: Text(text, textDirection: TextDirection.ltr, style: const TextStyle(fontFamily: 'Menlo', fontSize: 13)),
     );
   }
 }
@@ -947,8 +958,8 @@ class _CachesPanel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _SectionHeader(
-          title: 'Caches',
-          subtitle: '${humanBytes(total)} can be cleaned · everything here downloads or rebuilds again when needed',
+          title: context.t.caches,
+          subtitle: context.t.cachesSubtitle(sizeOf(context, total)),
         ),
         const SizedBox(height: 18),
         for (final (n, c) in caches.indexed)
@@ -960,7 +971,7 @@ class _CachesPanel extends StatelessWidget {
               builder: (context, hover) => AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 margin: const EdgeInsets.only(bottom: 4),
-                padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 6, 10),
                 decoration: BoxDecoration(
                   color: hover ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04) : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
@@ -974,12 +985,12 @@ class _CachesPanel extends StatelessWidget {
                               overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                         ),
                         const SizedBox(width: 8),
-                        if (c.policy == 'auto') const _Tag('safe', MB.accent),
-                        if (c.policy == 'ask') const _Tag('slow to re-download', Color(0xFFB7791F)),
-                        if (c.policy == 'report') _Tag('info only', quiet),
+                        if (c.policy == 'auto') _Tag(context.t.tagSafe, MB.accent),
+                        if (c.policy == 'ask') _Tag(context.t.tagSlow, const Color(0xFFB7791F)),
+                        if (c.policy == 'report') _Tag(context.t.tagInfo, quiet),
                       ]),
                       const SizedBox(height: 4),
-                      Text(c.blocked.isNotEmpty ? 'Waiting: ${c.blocked}' : c.how,
+                      Text(c.blocked.isNotEmpty ? context.t.cacheWaiting(c.blocked) : c.how,
                           maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: quiet)),
                     ]),
                   ),
@@ -987,7 +998,7 @@ class _CachesPanel extends StatelessWidget {
                   SizedBox(
                     width: 120,
                     child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(c.bytes == 0 ? 'size unknown' : humanBytes(c.bytes),
+                      Text(c.bytes == 0 ? context.t.sizeUnknown : sizeOf(context, c.bytes),
                           style: TextStyle(
                               fontWeight: FontWeight.w500,
                               color: c.bytes == 0 ? quiet : null,
@@ -996,7 +1007,7 @@ class _CachesPanel extends StatelessWidget {
                       Container(
                         width: double.infinity,
                         height: 4,
-                        alignment: Alignment.centerRight,
+                        alignment: AlignmentDirectional.centerEnd,
                         decoration: BoxDecoration(color: MB.line(context), borderRadius: BorderRadius.circular(3)),
                         child: FractionallySizedBox(
                           widthFactor: (c.bytes / largest).clamp(0.04, 1.0),
@@ -1019,7 +1030,7 @@ class _CachesPanel extends StatelessWidget {
                             opacity: hover ? 1 : 0.45,
                             duration: const Duration(milliseconds: 180),
                             child: IconButton(
-                                tooltip: 'Clean', onPressed: () => onClean([c]), icon: const Icon(Icons.cleaning_services_outlined, size: 20)),
+                                tooltip: context.t.clean, onPressed: () => onClean([c]), icon: const Icon(Icons.cleaning_services_outlined, size: 20)),
                           )
                         : null,
                   ),
@@ -1033,11 +1044,11 @@ class _CachesPanel extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => onClean(safe),
               icon: const Icon(Icons.cleaning_services_outlined, size: 18),
-              label: Text('Clean safe caches ${humanBytes(safeBytes)}'),
+              label: Text(context.t.cleanSafeCaches(sizeOf(context, safeBytes))),
             ),
             const SizedBox(width: 14),
             Flexible(
-              child: Text('Autopilot uses these too when space runs low.', style: TextStyle(fontSize: 13, color: quiet)),
+              child: Text(context.t.cachesAutopilotHint, style: TextStyle(fontSize: 13, color: quiet)),
             ),
           ]),
         ],
@@ -1074,7 +1085,10 @@ class _MothballedPanel extends StatelessWidget {
     return Panel(
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _SectionHeader(title: 'Mothballed', subtitle: '${plural(projects.length, 'project')} resting · ${humanBytes(total)} put away'),
+        _SectionHeader(
+          title: context.t.mothballed,
+          subtitle: context.t.mothballedSubtitle(context.t.projectsCount(projects.length), sizeOf(context, total)),
+        ),
         const SizedBox(height: 14),
         for (final p in projects) _MothballedRow(p: p, onWake: () => onWake(p)),
       ]),
@@ -1106,7 +1120,7 @@ class _MothballedRow extends StatelessWidget {
           _PathLine(p.path),
           const SizedBox(height: 3),
           Text(
-            p.returned ? "You're back on this one. Wake it to rebuild." : '${humanBytes(p.bytes)} put away',
+            p.returned ? context.t.backOnThisOne : context.t.sizePutAway(sizeOf(context, p.bytes)),
             style: TextStyle(fontSize: 13, color: p.returned ? MB.accentOn(context) : quiet),
           ),
         ]),
@@ -1114,8 +1128,8 @@ class _MothballedRow extends StatelessWidget {
       ProjectMenu(path: p.path),
       const SizedBox(width: 4),
       p.returned
-          ? FilledButton(onPressed: onWake, child: const Text('Wake'))
-          : OutlinedButton(onPressed: onWake, child: const Text('Wake')),
+          ? FilledButton(onPressed: onWake, child: Text(context.t.wake))
+          : OutlinedButton(onPressed: onWake, child: Text(context.t.wake)),
     ]),
     );
     if (!p.returned) {
@@ -1149,7 +1163,7 @@ class _ActivityPanel extends StatelessWidget {
     return Panel(
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const _SectionHeader(title: 'Lately'),
+        _SectionHeader(title: context.t.lately),
         const SizedBox(height: 14),
         for (final (i, e) in shown.indexed)
           IntrinsicHeight(
@@ -1175,7 +1189,7 @@ class _ActivityPanel extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(
-                      e.bytes > 0 ? '${_headline(e)} ${humanBytes(e.bytes)}' : _headline(e),
+                      _headline(context, e),
                       style: TextStyle(
                           fontWeight: FontWeight.w600, color: e.kind == 'error' ? Theme.of(context).colorScheme.error : null),
                     ),
@@ -1186,8 +1200,8 @@ class _ActivityPanel extends StatelessWidget {
               ),
               if (e.at != null)
                 Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text(_when(e.at!), style: TextStyle(fontSize: 12, color: quiet)),
+                  padding: const EdgeInsetsDirectional.only(start: 12),
+                  child: Text(ago(context, e.at!), style: TextStyle(fontSize: 12, color: quiet)),
                 ),
             ]),
           ),
@@ -1195,20 +1209,15 @@ class _ActivityPanel extends StatelessWidget {
     );
   }
 
-  static String _headline(ServiceEvent e) => switch (e.kind) {
-        'autopilot' => 'Autopilot put away',
-        'emptied' => 'Emptied',
-        'error' => 'Something went wrong',
-        _ => e.kind,
-      };
-
-  static String _when(DateTime t) {
-    final d = DateTime.now().difference(t);
-    if (d.inMinutes < 1) return 'just now';
-    if (d.inHours < 1) return '${d.inMinutes}m ago';
-    if (d.inDays < 1) return '${d.inHours}h ago';
-    if (d.inDays < 30) return '${d.inDays}d ago';
-    return '${t.day}/${t.month}/${t.year}';
+  static String _headline(BuildContext context, ServiceEvent e) {
+    final t = context.t;
+    final size = e.bytes > 0 ? sizeOf(context, e.bytes) : null;
+    return switch (e.kind) {
+      'autopilot' => size == null ? t.eventAutopilot : t.eventAutopilotSize(size),
+      'emptied' => size == null ? t.eventEmptied : t.eventEmptiedSize(size),
+      'error' => t.eventError,
+      _ => size == null ? e.kind : '${e.kind} $size',
+    };
   }
 }
 
@@ -1254,17 +1263,17 @@ class _OfflineState extends State<_Offline> {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               MothLogo(size: 84, alive: true, busy: _starting),
               const SizedBox(height: 28),
-              Text('Mothball is resting', textAlign: TextAlign.center, style: MB.display(context, 40)),
+              Text(context.t.offlineTitle, textAlign: TextAlign.center, style: MB.display(context, 40)),
               const SizedBox(height: 12),
               Text(
-                'Its background service is not running. Mothball does its work there, so autopilot keeps going even when this window is closed.',
+                context.t.offlineBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: MB.quiet(context), fontSize: 15, height: 1.5),
               ),
               const SizedBox(height: 28),
-              FilledButton(onPressed: _starting ? null : _start, child: Text(_starting ? 'Starting…' : 'Start Mothball')),
+              FilledButton(onPressed: _starting ? null : _start, child: Text(_starting ? context.t.starting : context.t.startMothball)),
               const SizedBox(height: 6),
-              TextButton(onPressed: widget.onRetry, child: const Text('Try again')),
+              TextButton(onPressed: widget.onRetry, child: Text(context.t.tryAgain)),
               AnimatedSize(
                 duration: const Duration(milliseconds: 240),
                 child: _error == null

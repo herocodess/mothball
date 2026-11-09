@@ -3,9 +3,6 @@ import 'dart:io';
 
 import 'models.dart';
 
-/// What the system calls its bin: "Recycle Bin" on Windows, "Trash" elsewhere.
-final String trashName = Platform.isWindows ? 'Recycle Bin' : 'Trash';
-
 /// Thrown when the background service is not running or cannot be reached.
 class ServiceUnavailable implements Exception {
   ServiceUnavailable(this.reason);

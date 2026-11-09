@@ -29,6 +29,9 @@ type Config struct {
 	SkipUpdateCheck bool `json:"skipUpdateCheck"`
 	// Theme is the app's appearance: "system" (default), "light" or "dark".
 	Theme string `json:"theme,omitempty"`
+	// Language is the app's language, like "fr" or "pt". Empty follows the
+	// system.
+	Language string `json:"language,omitempty"`
 }
 
 // Default is the starting configuration: everything manual until the user
@@ -54,10 +57,28 @@ func (c *Config) Validate() []string {
 	default:
 		c.Theme, fixed = "system", append(fixed, "theme set to system")
 	}
+	if !validLanguage(c.Language) {
+		c.Language, fixed = "", append(fixed, "language set to follow the system")
+	}
 	if c.CheckMinutes < 1 {
 		c.CheckMinutes, fixed = 15, append(fixed, "checkMinutes set to 15")
 	}
 	return fixed
+}
+
+// validLanguage accepts a short language code such as "ar", "pt" or
+// "zh_Hans". The app falls back to English for one it has no text for.
+func validLanguage(code string) bool {
+	if len(code) > 12 {
+		return false
+	}
+	for i, r := range code {
+		letter := r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z'
+		if !letter && !(i > 0 && (r == '_' || r == '-')) {
+			return false
+		}
+	}
+	return true
 }
 
 func path(dir string) string { return filepath.Join(dir, "config.json") }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'language.dart';
+
 /// Mothball's palette and type: Instrument Sans throughout, set heavier and
 /// tighter for the big moments.
 class MB {
@@ -13,16 +15,23 @@ class MB {
   static const card = Color(0xFFFFFFFF);
   static const cardDark = Color(0xFF161A20);
 
-  /// Display text for numbers and headlines.
+  /// Display text for numbers and headlines. Tight spacing for Latin
+  /// letters; normal spacing and a little more line height otherwise, so
+  /// Arabic letters stay joined and Chinese and Japanese breathe.
   static TextStyle display(BuildContext context, double size, {Color? color, FontStyle? style}) => TextStyle(
         fontFamily: sans,
         fontSize: size,
         fontWeight: FontWeight.w600,
-        height: 1.08,
-        letterSpacing: -0.035 * size,
+        height: latinScript(context) ? 1.08 : 1.3,
+        letterSpacing: latinScript(context) ? -0.035 * size : 0,
         fontStyle: style,
         color: color ?? Theme.of(context).colorScheme.onSurface,
       );
+
+  /// A small all-caps label, like FREE SPACE. Only Latin letters have
+  /// capitals and take the wide spacing.
+  static (String, double) caps(BuildContext context, String text, double spacing) =>
+      latinScript(context) ? (text.toUpperCase(), spacing) : (text, 0);
 
   /// Quiet secondary text colour.
   static Color quiet(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
@@ -129,3 +138,11 @@ ThemeData buildTheme(Brightness b) {
     }),
   );
 }
+
+/// The theme for scripts that must not be letter-spaced: dialog titles lose
+/// their tight tracking.
+ThemeData forScript(ThemeData t) => t.copyWith(
+      dialogTheme: t.dialogTheme.copyWith(
+        titleTextStyle: t.dialogTheme.titleTextStyle?.copyWith(letterSpacing: 0, height: 1.35),
+      ),
+    );

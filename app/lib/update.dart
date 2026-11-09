@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'language.dart';
 import 'logo.dart';
 import 'models.dart';
 import 'motion.dart';
@@ -27,20 +28,21 @@ class UpdateBanner extends StatelessWidget {
     final u = update;
     final accent = MB.accentOn(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final t = context.t;
     final String title;
     final String detail;
     if (u.ready) {
-      title = 'Mothball ${u.latest} is ready';
-      detail = 'Restart to finish. It takes a couple of seconds.';
+      title = t.updateReadyTitle(u.latest);
+      detail = t.updateReadyDetail;
     } else if (u.downloading) {
-      title = 'Downloading Mothball ${u.latest}';
-      detail = '${(u.progress * 100).round()}%';
+      title = t.updateDownloadingTitle(u.latest);
+      detail = percent(context, u.progress);
     } else if (u.installing) {
-      title = 'Installing Mothball ${u.latest}';
-      detail = 'Mothball will reopen on its own.';
+      title = t.updateInstallingTitle(u.latest);
+      detail = t.updateInstallingDetail;
     } else {
-      title = 'Mothball ${u.latest} is out';
-      detail = u.error.isNotEmpty ? u.error : 'You have ${u.current}.';
+      title = t.updateOutTitle(u.latest);
+      detail = u.error.isNotEmpty ? u.error : t.updateYouHave(u.current);
     }
     final busy = u.downloading || u.installing;
     return Padding(
@@ -57,7 +59,7 @@ class UpdateBanner extends StatelessWidget {
             ),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
+                padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 10, 10),
                 child: Row(children: [
                   Container(
                     width: 34,
@@ -79,17 +81,17 @@ class UpdateBanner extends StatelessWidget {
                     ]),
                   ),
                   if (!busy) ...[
-                    TextButton(onPressed: onNotes, child: const Text("What's new")),
-                    if (!u.ready) TextButton(onPressed: onLater, child: const Text('Later')),
+                    TextButton(onPressed: onNotes, child: Text(t.whatsNew)),
+                    if (!u.ready) TextButton(onPressed: onLater, child: Text(t.later)),
                     const SizedBox(width: 4),
                     FilledButton(
                       onPressed: onUpdate,
                       style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
                       child: Text(u.ready
-                          ? 'Restart to update'
+                          ? t.restartToUpdate
                           : u.canInstall
-                              ? 'Update'
-                              : 'Download'),
+                              ? t.update
+                              : t.download),
                     ),
                   ],
                 ]),
@@ -126,6 +128,7 @@ class UpdateRequired extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final u = update;
+    final t = context.t;
     final busy = u.downloading || u.installing;
     return Center(
       child: SingleChildScrollView(
@@ -136,18 +139,16 @@ class UpdateRequired extends StatelessWidget {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               MothLogo(size: 64, alive: true, busy: busy),
               const SizedBox(height: 24),
-              Text('Please update Mothball', textAlign: TextAlign.center, style: MB.display(context, 34)),
+              Text(t.pleaseUpdate, textAlign: TextAlign.center, style: MB.display(context, 34)),
               const SizedBox(height: 12),
               Text(
-                u.message.isNotEmpty
-                    ? u.message
-                    : 'Version ${u.latest} fixes a problem in the version you have.',
+                u.message.isNotEmpty ? u.message : t.updateFixesProblem(u.latest),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, height: 1.5, color: MB.quiet(context)),
               ),
               const SizedBox(height: 8),
               Text(
-                'Until you update, Mothball won\'t put anything away. Your projects and anything already in the $trashName are fine.',
+                t.updateUntil(inTrash(context)),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, height: 1.5, color: MB.quiet(context)),
               ),
@@ -161,20 +162,20 @@ class UpdateRequired extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text('Downloading ${(u.progress * 100).round()}%', style: TextStyle(color: MB.quiet(context))),
+                Text(t.downloadingPercent(percent(context, u.progress)), style: TextStyle(color: MB.quiet(context))),
               ] else if (u.installing)
-                Text('Installing. Mothball will reopen on its own.', style: TextStyle(color: MB.quiet(context)))
+                Text(t.installingReopen, style: TextStyle(color: MB.quiet(context)))
               else
                 Wrap(spacing: 10, runSpacing: 10, alignment: WrapAlignment.center, children: [
                   FilledButton(
                     onPressed: onUpdate,
                     child: Text(u.ready
-                        ? 'Restart to update'
+                        ? t.restartToUpdate
                         : u.canInstall
-                            ? 'Update to ${u.latest}'
-                            : 'Download ${u.latest}'),
+                            ? t.updateTo(u.latest)
+                            : t.downloadVersion(u.latest)),
                   ),
-                  OutlinedButton(onPressed: onNotes, child: const Text("What's new")),
+                  OutlinedButton(onPressed: onNotes, child: Text(t.whatsNew)),
                 ]),
               if (u.error.isNotEmpty && !busy) ...[
                 const SizedBox(height: 14),
@@ -196,8 +197,8 @@ Future<void> showWhatsNew(BuildContext context, UpdateInfo u,
     context: context,
     builder: (ctx) {
       final quiet = MB.quiet(ctx);
+      final t = ctx.t;
       final date = u.publishedAt;
-      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
       return Dialog(
         insetPadding: const EdgeInsets.all(32),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -211,26 +212,27 @@ Future<void> showWhatsNew(BuildContext context, UpdateInfo u,
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text("What's new in ${u.latest}", style: MB.display(ctx, 26)),
+                    Text(t.whatsNewIn(u.latest), style: MB.display(ctx, 26)),
                     const SizedBox(height: 4),
                     Text(
                       [
-                        if (date != null) 'Released ${date.day} ${months[date.month - 1]} ${date.year}',
-                        'You have ${u.current}',
+                        if (date != null) t.releasedOn(longDate(ctx, date)),
+                        t.youHaveVersion(u.current),
                       ].join(' · '),
                       style: TextStyle(color: quiet, fontSize: 13.5),
                     ),
                   ]),
                 ),
-                IconButton(tooltip: 'Close', onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded)),
+                IconButton(tooltip: t.close, onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded)),
               ]),
             ),
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(28, 14, 28, 8),
                 child: u.notes.trim().isEmpty
-                    ? Text('This release has no notes.', style: TextStyle(color: quiet))
-                    : ReleaseNotes(u.notes),
+                    ? Text(t.noNotes, style: TextStyle(color: quiet))
+                    // Release notes are written in English, so they read left to right.
+                    : Directionality(textDirection: TextDirection.ltr, child: ReleaseNotes(u.notes)),
               ),
             ),
             Divider(height: 1, color: MB.line(ctx)),
@@ -240,7 +242,7 @@ Future<void> showWhatsNew(BuildContext context, UpdateInfo u,
                 TextButton.icon(
                   onPressed: onGitHub,
                   icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: const Text('View on GitHub'),
+                  label: Text(t.viewOnGitHub),
                 ),
                 const Spacer(),
                 if (!u.downloading && !u.installing)
@@ -250,10 +252,10 @@ Future<void> showWhatsNew(BuildContext context, UpdateInfo u,
                       onUpdate();
                     },
                     child: Text(u.ready
-                        ? 'Restart to update'
+                        ? t.restartToUpdate
                         : u.canInstall
-                            ? 'Update now'
-                            : 'Download ${u.latest}'),
+                            ? t.updateNow
+                            : t.downloadVersion(u.latest)),
                   ),
               ]),
             ),

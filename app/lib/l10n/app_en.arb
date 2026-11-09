@@ -1,0 +1,621 @@
+{
+  "@@locale": "en",
+  "cancel": "Cancel",
+  "close": "Close",
+  "back": "Back",
+  "save": "Save",
+  "saving": "Saving…",
+  "settings": "Settings",
+  "tryAgain": "Try again",
+  "unitB": "B",
+  "unitKB": "KB",
+  "unitMB": "MB",
+  "unitGB": "GB",
+  "unitTB": "TB",
+  "percent": "{value}%",
+  "@percent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "toTrash": "to the Trash",
+  "@toTrash": {
+    "description": "Used inside sentences: 'This folder moves to the Trash.' Use the name macOS gives the Trash in this language."
+  },
+  "toRecycleBin": "to the Recycle Bin",
+  "@toRecycleBin": {
+    "description": "Used inside sentences on Windows. Use the name Windows gives the Recycle Bin in this language."
+  },
+  "inTrash": "in the Trash",
+  "@inTrash": {
+    "description": "Used inside sentences: '2 GB waiting in the Trash'."
+  },
+  "inRecycleBin": "in the Recycle Bin",
+  "projectsCount": "{count, plural, =1{1 project} other{{count} projects}}",
+  "@projectsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "foldersCount": "{count, plural, =1{1 folder} other{{count} folders}}",
+  "@foldersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysUnit": "{count, plural, =1{day} other{days}}",
+  "@daysUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "listOfTwo": "{first} and {second}",
+  "@listOfTwo": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "listOfThree": "{first}, {second} and {third}",
+  "@listOfThree": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      },
+      "third": {
+        "type": "String"
+      }
+    }
+  },
+  "folderDesktop": "Desktop",
+  "folderDocuments": "Documents",
+  "folderDownloads": "Downloads",
+  "justNow": "just now",
+  "minutesAgo": "{count}m ago",
+  "@minutesAgo": {
+    "description": "Short form, like '5m ago'.",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "hoursAgo": "{count}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "daysAgo": "{count}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "statusWorking": "Working",
+  "statusWatching": "Watching",
+  "@statusWatching": {
+    "description": "Shown in the top bar while the background service is running."
+  },
+  "busyScanning": "Looking through your projects",
+  "busyPuttingAway": "Putting away",
+  "busyCleaningCaches": "Cleaning caches",
+  "busyWaking": "Waking {name}",
+  "@busyWaking": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "busySaving": "Saving",
+  "putAway": "Put away",
+  "@putAway": {
+    "description": "Mothball's main action: move a project's rebuildable build output (node_modules, build, Pods) to the Trash. Like putting winter clothes away in mothballs. Not 'save' and not 'delete'."
+  },
+  "putAwayTitle": "Put away {size}?",
+  "@putAwayTitle": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "putAwayBody": "{count, plural, =1{This folder moves {toTrash}.} other{{count} folders move {toTrash}.}} Your code is never touched, and any project can be woken later with its usual install command.",
+  "@putAwayBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "putAwayResult": "{left, plural, =0{Put away {size}.} other{Put away {size}, left {left} alone.}}",
+  "@putAwayResult": {
+    "placeholders": {
+      "left": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanCachesTitle": "Clean {size} of caches?",
+  "@cleanCachesTitle": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "clean": "Clean",
+  "cleanedResult": "Cleaned {size}.",
+  "@cleanedResult": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanedWithError": "Cleaned {size}. {name}: {error}",
+  "@cleanedWithError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "wake": "Wake",
+  "@wake": {
+    "description": "Bring a put-away project back by running its install command (npm install, flutter pub get)."
+  },
+  "wakeTitle": "Wake {name}?",
+  "@wakeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "wakeRebuildsItself": "This project rebuilds its output on its own the next time you open it.",
+  "wakeWillRun": "Mothball will run this in the project folder:",
+  "freeSpace": "Free space",
+  "@freeSpace": {
+    "description": "Shown in capitals above the big free-space number in Latin languages."
+  },
+  "autopilot": "Autopilot",
+  "@autopilot": {
+    "description": "Mode that puts idle projects away by itself when free space runs low."
+  },
+  "autopilotKeeping": "Keeping {size} free",
+  "@autopilotKeeping": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "off": "Off",
+  "legendFreeNow": "Free now",
+  "legendCanGetBack": "{size} you can get back",
+  "@legendCanGetBack": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "legendWaiting": "{size} waiting {inTrash}",
+  "@legendWaiting": {
+    "placeholders": {
+      "inTrash": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "spaceTarget": "target {size}",
+  "@spaceTarget": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "idleProjects": "Idle projects",
+  "notScannedYet": "Not scanned yet",
+  "idleNone": "Nothing untouched for {days}+ days. {projects} checked.",
+  "@idleNone": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "projects": {
+        "type": "String"
+      }
+    }
+  },
+  "idleSummary": "Untouched for {days}+ days · {size} of build output in {folders}",
+  "@idleSummary": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "folders": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "scan": "Scan",
+  "andMore": "and {count} more",
+  "@andMore": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "putAwayAll": "Put away all {size}",
+  "@putAwayAll": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "putAwayHint": "Moves {toTrash}. Your code stays put.",
+  "@putAwayHint": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "idleFor": "{days, plural, =1{{pack} · idle 1 day} other{{pack} · idle {days} days}}",
+  "@idleFor": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "pack": {
+        "type": "String"
+      }
+    }
+  },
+  "caches": "Caches",
+  "cachesSubtitle": "{size} can be cleaned · everything here downloads or rebuilds again when needed",
+  "@cachesSubtitle": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "tagSafe": "safe",
+  "@tagSafe": {
+    "description": "Small label on a cache that is safe to clean at any time."
+  },
+  "tagSlow": "slow to re-download",
+  "tagInfo": "info only",
+  "cacheWaiting": "Waiting: {reason}",
+  "@cacheWaiting": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "sizeUnknown": "size unknown",
+  "cleanSafeCaches": "Clean safe caches {size}",
+  "@cleanSafeCaches": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cachesAutopilotHint": "Autopilot uses these too when space runs low.",
+  "mothballed": "Mothballed",
+  "@mothballed": {
+    "description": "Section title: projects whose build output has been put away and are 'sleeping'."
+  },
+  "mothballedSubtitle": "{projects} resting · {size} put away",
+  "@mothballedSubtitle": {
+    "placeholders": {
+      "projects": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "backOnThisOne": "You're back on this one. Wake it to rebuild.",
+  "sizePutAway": "{size} put away",
+  "@sizePutAway": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "lately": "Lately",
+  "eventAutopilot": "Autopilot put away",
+  "eventAutopilotSize": "Autopilot put away {size}",
+  "@eventAutopilotSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "eventEmptied": "Emptied",
+  "eventEmptiedSize": "Emptied {size}",
+  "@eventEmptiedSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "eventError": "Something went wrong",
+  "offlineTitle": "Mothball is resting",
+  "offlineBody": "Its background service is not running. Mothball does its work there, so autopilot keeps going even when this window is closed.",
+  "starting": "Starting…",
+  "startMothball": "Start Mothball",
+  "showInFinder": "Show in Finder",
+  "showInFileExplorer": "Show in File Explorer",
+  "showInFiles": "Show in Files",
+  "copyPath": "Copy path",
+  "pathCopied": "Path copied",
+  "appearance": "Appearance",
+  "appearanceHint": "Match your system, or pick one.",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "language": "Language",
+  "languageHint": "Mothball uses your system's language unless you pick one.",
+  "languageSystem": "Same as system",
+  "idleAfter": "Idle after",
+  "idleAfterHint": "A project with no commits for this long counts as idle.",
+  "autopilotHint": "Put away output from the longest-idle projects whenever free space drops below your target.",
+  "keepFree": "Keep free",
+  "autoEmpty": "Auto-empty",
+  "autoEmptyWindows": "Not on Windows yet. Mothball can't safely tell its own folders apart from the rest of your Recycle Bin, so emptying stays with you.",
+  "autoEmptyHint": "Permanently empty the folders Mothball put {inTrash} after a grace period. Nothing else in it is touched.",
+  "@autoEmptyHint": {
+    "placeholders": {
+      "inTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyAfter": "Empty after",
+  "checkForUpdates": "Check for updates",
+  "checkForUpdatesHint": "Once a day, Mothball asks GitHub whether a newer version is out. Nothing about you or your projects is sent.",
+  "versionLabel": "Mothball {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "checkNow": "Check now",
+  "checking": "Checking…",
+  "updateCheckFailed": "Couldn't reach GitHub. Try again in a bit.",
+  "updateCheckAvailable": "Mothball {version} is out. Update from the banner on the main screen.",
+  "@updateCheckAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateCheckLatest": "You're on the latest version.",
+  "updateCheckError": "Couldn't check right now.",
+  "sendFeedback": "Send feedback",
+  "sendFeedbackHint": "Found a bug, or a stack Mothball misses? This opens a GitHub issue with your Mothball version and system already filled in. Nothing is sent until you submit it.",
+  "reportProblem": "Report a problem",
+  "suggestStack": "Suggest a stack or cache",
+  "foldersToWatch": "Folders to watch",
+  "foldersToWatchHint": "One per line. Leave empty to watch your whole home folder.",
+  "ignoreTip": "Tip: add a .mothballignore file to any project to keep Mothball out of it.",
+  "oneThingFirst": "One thing first",
+  "accessHeadlineStart": "Let Mothball see ",
+  "@accessHeadlineStart": {
+    "description": "The headline is three pieces; the middle one is shown in italics. Leave a piece empty if the word order needs it."
+  },
+  "accessHeadlineEmphasis": "all",
+  "accessHeadlineEnd": " your projects",
+  "accessBody": "macOS keeps {folders} private. Plenty of projects live there, so Mothball asks once for Full Disk Access rather than interrupting you with a prompt for every folder.",
+  "@accessBody": {
+    "placeholders": {
+      "folders": {
+        "type": "String"
+      }
+    }
+  },
+  "accessPromise": "It only reads folder names and sizes. It never opens your documents, never sends anything off your Mac, and never touches files tracked by git.",
+  "openSystemSettings": "Open System Settings",
+  "showMothballInFinder": "Show Mothball in Finder",
+  "turnedItOn": "I've turned it on",
+  "notNowSkip": "Not now, skip {folders}",
+  "@notNowSkip": {
+    "placeholders": {
+      "folders": {
+        "type": "String"
+      }
+    }
+  },
+  "previewPrivacy": "Privacy & Security",
+  "previewFullDiskAccess": "Full Disk Access",
+  "previewAllow": "Allow the applications below to access all your files.",
+  "previewBackup": "Backup Utility",
+  "@previewBackup": {
+    "description": "A made-up app name in a picture of System Settings."
+  },
+  "reminderNotScanned": "{count, plural, =1{{folders} is not being scanned.} other{{folders} are not being scanned.}}",
+  "@reminderNotScanned": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "folders": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderGiveAccess": "Give Mothball Full Disk Access to include them.",
+  "openSettings": "Open Settings",
+  "checkAgain": "Check again",
+  "updateReadyTitle": "Mothball {version} is ready",
+  "@updateReadyTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateReadyDetail": "Restart to finish. It takes a couple of seconds.",
+  "updateDownloadingTitle": "Downloading Mothball {version}",
+  "@updateDownloadingTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstallingTitle": "Installing Mothball {version}",
+  "@updateInstallingTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstallingDetail": "Mothball will reopen on its own.",
+  "updateOutTitle": "Mothball {version} is out",
+  "@updateOutTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateYouHave": "You have {version}.",
+  "@updateYouHave": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsNew": "What's new",
+  "later": "Later",
+  "restartToUpdate": "Restart to update",
+  "update": "Update",
+  "download": "Download",
+  "pleaseUpdate": "Please update Mothball",
+  "updateFixesProblem": "Version {version} fixes a problem in the version you have.",
+  "@updateFixesProblem": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateUntil": "Until you update, Mothball won't put anything away. Your projects and anything already {inTrash} are fine.",
+  "@updateUntil": {
+    "placeholders": {
+      "inTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadingPercent": "Downloading {percent}",
+  "@downloadingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "installingReopen": "Installing. Mothball will reopen on its own.",
+  "updateTo": "Update to {version}",
+  "@updateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadVersion": "Download {version}",
+  "@downloadVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsNewIn": "What's new in {version}",
+  "@whatsNewIn": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "releasedOn": "Released {date}",
+  "@releasedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "youHaveVersion": "You have {version}",
+  "@youHaveVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "noNotes": "This release has no notes.",
+  "viewOnGitHub": "View on GitHub",
+  "updateNow": "Update now"
+}
