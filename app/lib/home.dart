@@ -526,8 +526,12 @@ class _SpacePanel extends StatelessWidget {
                 return Text(text, style: TextStyle(fontSize: 11, letterSpacing: spacing, fontWeight: FontWeight.w600, color: quiet));
               }),
               const SizedBox(height: 6),
-              // The number and its unit read left to right in every language.
-              Directionality(
+              // The number and its unit read left to right in every language, and
+              // shrink rather than overflow when the window is narrow.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Directionality(
                 textDirection: TextDirection.ltr,
                 child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
                   CountUp(
@@ -538,10 +542,15 @@ class _SpacePanel extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(context.t.unitGB, style: MB.display(context, 28, color: quiet)),
                 ]),
+                ),
               ),
             ]),
           ),
-          _AutopilotToggle(config: st.config, onChanged: onAutopilot),
+          const SizedBox(width: 12),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 300),
+            child: _AutopilotToggle(config: st.config, onChanged: onAutopilot),
+          ),
         ]),
         const SizedBox(height: 22),
         _SpaceBar(free: st.freeBytes, reclaim: reclaim, target: st.targetBytes, showTarget: st.config.autopilot),
@@ -575,15 +584,17 @@ class _AutopilotToggle extends StatelessWidget {
         border: Border.all(color: on ? MB.accent.withValues(alpha: 0.35) : MB.line(context)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+        Flexible(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisSize: MainAxisSize.min, children: [
             if (on) ...[const LiveDot(color: MB.accent, size: 6), const SizedBox(width: 2)],
             Text(context.t.autopilot, style: const TextStyle(fontWeight: FontWeight.w600)),
           ]),
           const SizedBox(height: 2),
           Text(on ? context.t.autopilotKeeping(gigabytes(context, config.targetFreeGB)) : context.t.off,
               style: TextStyle(fontSize: 13, color: MB.quiet(context))),
-        ]),
+          ]),
+        ),
         const SizedBox(width: 12),
         Switch(value: on, onChanged: onChanged),
       ]),
