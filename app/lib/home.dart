@@ -916,7 +916,8 @@ class _Chip extends StatelessWidget {
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(text, style: TextStyle(fontSize: 12, color: MB.quiet(context), fontWeight: FontWeight.w500)),
+      // Folder names like .next read left to right in every language.
+      child: Text(text, textDirection: TextDirection.ltr, style: TextStyle(fontSize: 12, color: MB.quiet(context), fontWeight: FontWeight.w500)),
     );
   }
 }

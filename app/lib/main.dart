@@ -40,7 +40,9 @@ class MothballApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
         // Headline letter spacing suits Latin letters only; see latinScript.
-        builder: (context, child) => latinScript(context) ? child! : Theme(data: forScript(Theme.of(context)), child: child!),
+        builder: (context, child) => latinScript(context)
+            ? child!
+            : Theme(data: forScript(Theme.of(context), Localizations.localeOf(context).languageCode), child: child!),
         home: HomeScreen(api: api),
       ),
     );
