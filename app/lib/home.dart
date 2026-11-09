@@ -588,7 +588,7 @@ class _AutopilotToggle extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisSize: MainAxisSize.min, children: [
             if (on) ...[const LiveDot(color: MB.accent, size: 6), const SizedBox(width: 2)],
-            Text(context.t.autopilot, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Flexible(child: Text(context.t.autopilot, style: const TextStyle(fontWeight: FontWeight.w600))),
           ]),
           const SizedBox(height: 2),
           Text(on ? context.t.autopilotKeeping(gigabytes(context, config.targetFreeGB)) : context.t.off,
