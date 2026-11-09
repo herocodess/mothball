@@ -457,11 +457,15 @@ class _LanguagePicker extends StatelessWidget {
             // The translations are new: make fixing them one click away.
             if (context.t.localeName != 'en') ...[
               const SizedBox(height: 6),
-              TextButton.icon(
-                onPressed: () => MothballApi.openUrl(FeedbackLinks.translation(version, FeedbackLinks.translationLanguage(context.t.localeName))),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: Text(context.t.helpTranslate),
+              ConstrainedBox(
+                // Long translations wrap rather than push past the hint.
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: TextButton.icon(
+                  onPressed: () => MothballApi.openUrl(FeedbackLinks.translation(version, FeedbackLinks.translationLanguage(context.t.localeName))),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                  icon: const Icon(Icons.edit_note_rounded, size: 18),
+                  label: Text(context.t.helpTranslate),
+                ),
               ),
             ],
           ]),
