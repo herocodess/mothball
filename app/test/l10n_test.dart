@@ -128,7 +128,7 @@ void main() {
     expect(en.cleanedWithError('1.0 GB', 'Chrome cache', 'Chrome is open'), 'Cleaned 1.0 GB. Chrome cache: Chrome is open');
     expect(en.putAwayResult(2, '3.0 GB'), 'Put away 3.0 GB, left 2 alone.');
     final ja = await AppLocalizations.delegate.load(const Locale('ja'));
-    expect(ja.idleSummary('60', '19.3 GB', '6 個のフォルダ'), '60 日以上未使用 · 6 個のフォルダに 19.3 GB のビルド成果物');
+    expect(ja.idleSummary('60', '19.3 GB', '6 個のフォルダ'), '60 日以上放置 · 6 個のフォルダに 19.3 GB のビルド成果物');
     final ar = await AppLocalizations.delegate.load(const Locale('ar'));
     expect(ar.projectsCount(2), 'مشروعان');
     expect(ar.projectsCount(5), '5 مشاريع');
