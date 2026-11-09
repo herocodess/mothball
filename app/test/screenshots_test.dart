@@ -147,7 +147,11 @@ Future<void> loadFonts() async {
   await load('Hiragino Sans', [
     for (final w in ['W3', 'W6']) '/System/Library/Fonts/\u30d2\u30e9\u30ae\u30ce\u89d2\u30b4\u30b7\u30c3\u30af $w.ttc',
   ]);
-  await load('Hiragino Sans GB', ['/System/Library/Fonts/Hiragino Sans GB.ttc']);
+  // Chinese lists PingFang SC first, which lives outside /System/Library/Fonts;
+  // Hiragino Sans GB stands in for it here.
+  for (final family in ['PingFang SC', 'Hiragino Sans GB']) {
+    await load(family, ['/System/Library/Fonts/Hiragino Sans GB.ttc']);
+  }
 
   // The Flutter SDK folder: FLUTTER_ROOT when set, else found from the test runner's path.
   var sdk = Platform.environment['FLUTTER_ROOT'] ?? '';
