@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import 'l10n/app_localizations.dart';
 
@@ -47,9 +47,9 @@ bool latinScript(BuildContext context) =>
     const {'en', 'es', 'fr', 'pt'}.contains(Localizations.maybeLocaleOf(context)?.languageCode ?? 'en');
 
 // Keeps numbers, sizes and paths reading left to right inside right-to-left
-// text: "‎19.3 GB" stays one unit instead of being reordered.
-const _lri = '⁦';
-const _pdi = '⁩';
+// text: "19.3 GB" stays one unit instead of being reordered.
+const _lri = '\u2066';
+const _pdi = '\u2069';
 
 /// Wraps text that must read left to right (a size, a path, a command) so
 /// it stays whole inside a right-to-left sentence.
@@ -99,9 +99,9 @@ String ago(BuildContext context, DateTime at) {
   final t = context.t;
   final d = DateTime.now().difference(at);
   if (d.inMinutes < 1) return t.justNow;
-  if (d.inHours < 1) return t.minutesAgo(d.inMinutes);
-  if (d.inDays < 1) return t.hoursAgo(d.inHours);
-  if (d.inDays < 30) return t.daysAgo(d.inDays);
+  if (d.inHours < 1) return t.minutesAgo('${d.inMinutes}');
+  if (d.inDays < 1) return t.hoursAgo('${d.inHours}');
+  if (d.inDays < 30) return t.daysAgo('${d.inDays}');
   return DateFormat.yMd(t.localeName).format(at);
 }
 
