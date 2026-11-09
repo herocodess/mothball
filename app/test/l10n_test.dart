@@ -53,7 +53,7 @@ final _sample = <String, dynamic>{
 };
 
 void main() {
-  final locales = AppLocalizations.supportedLocales;
+  const locales = AppLocalizations.supportedLocales;
 
   test('every language in the Settings list has translations', () {
     final codes = locales.map((l) => l.languageCode).toSet();
