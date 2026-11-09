@@ -13,6 +13,25 @@ class FeedbackLinks {
   /// A request for a stack or cache Mothball doesn't know yet, prefilled.
   static String newStack(String version) => _issue('new_stack.yml', version);
 
+  /// A fix for the translation in [language] (as the form's dropdown names
+  /// it), prefilled.
+  static String translation(String version, String language) => Uri.parse('$_repo/issues/new').replace(queryParameters: {
+        'template': 'translation.yml',
+        if (version.isNotEmpty) 'version': version,
+        if (language.isNotEmpty) 'language': language,
+      }).toString();
+
+  /// The translation form's name for a language code.
+  static String translationLanguage(String code) => switch (code) {
+        'ar' => 'Arabic (العربية)',
+        'zh' => 'Chinese, Simplified (简体中文)',
+        'fr' => 'French (Français)',
+        'ja' => 'Japanese (日本語)',
+        'pt' => 'Portuguese, Brazil (Português)',
+        'es' => 'Spanish (Español)',
+        _ => '',
+      };
+
   static String _issue(String template, String version) => Uri.parse('$_repo/issues/new').replace(queryParameters: {
         'template': template,
         if (version.isNotEmpty) 'version': version,

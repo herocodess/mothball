@@ -1,0 +1,54 @@
+name: Translation fix
+description: A word or sentence in Mothball reads wrong, sounds odd, or is missing in your language.
+title: "Translation: "
+labels: [translation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Mothball's translations are new, and people who speak the language are the best judges.
+
+        Want to fix it yourself? Each language is one file in [app/lib/l10n](https://github.com/herocodess/mothball/tree/main/app/lib/l10n), for example `app_fr.arb`. Change the text and open a pull request; see [Translations in CONTRIBUTING.md](https://github.com/herocodess/mothball/blob/main/CONTRIBUTING.md#translations).
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - Arabic (العربية)
+        - Chinese, Simplified (简体中文)
+        - French (Français)
+        - Japanese (日本語)
+        - Portuguese, Brazil (Português)
+        - Spanish (Español)
+        - A language Mothball doesn't have yet
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where in the app?
+      placeholder: Settings, the Put away dialog, the Idle projects list…
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What it says now
+      description: Copy the text, or attach a screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested
+    attributes:
+      label: What it should say
+      description: Your suggested wording, and why if it isn't obvious.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Mothball version
+      description: Filled in for you when you open this from the app.
+      placeholder: "0.1.7"
+    validations:
+      required: false

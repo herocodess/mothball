@@ -409,6 +409,10 @@
   "language": "Language",
   "languageHint": "Mothball uses your system's language unless you pick one.",
   "languageSystem": "Same as system",
+  "helpTranslate": "Help improve this translation",
+  "@helpTranslate": {
+    "description": "Link under the Language setting, shown in every language but English. Opens a GitHub form for reporting a wording problem."
+  },
   "idleAfter": "Idle after",
   "idleAfterHint": "A project with no commits for this long counts as idle.",
   "autopilotHint": "Put away output from the longest-idle projects whenever free space drops below your target.",

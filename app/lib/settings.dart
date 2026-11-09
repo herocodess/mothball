@@ -138,6 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Divider(height: 1, color: MB.line(context)),
                     _LanguagePicker(
                       value: _c.language,
+                      version: widget.version,
                       onChanged: (code) {
                         setState(() => _c = _c.copyWith(language: code));
                         language.value = code; // preview right away
@@ -424,9 +425,10 @@ class _Value extends StatelessWidget {
 /// The language list. Each language is shown in its own words, so someone
 /// who opened Mothball in the wrong language can still find theirs.
 class _LanguagePicker extends StatelessWidget {
-  const _LanguagePicker({required this.value, required this.onChanged});
+  const _LanguagePicker({required this.value, required this.version, required this.onChanged});
 
   final String value;
+  final String version;
   final ValueChanged<String> onChanged;
 
   @override
@@ -452,6 +454,16 @@ class _LanguagePicker extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 360),
               child: Text(context.t.languageHint, style: TextStyle(color: quiet)),
             ),
+            // The translations are new: make fixing them one click away.
+            if (context.t.localeName != 'en') ...[
+              const SizedBox(height: 6),
+              TextButton.icon(
+                onPressed: () => MothballApi.openUrl(FeedbackLinks.translation(version, FeedbackLinks.translationLanguage(context.t.localeName))),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: Text(context.t.helpTranslate),
+              ),
+            ],
           ]),
           DropdownMenu<String>(
             key: const ValueKey('language'),

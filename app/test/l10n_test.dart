@@ -95,6 +95,8 @@ void main() {
         expect(find.byType(SettingsScreen), findsOneWidget);
         final t = AppLocalizations.of(tester.element(find.byType(SettingsScreen)));
         expect(find.text(t.language), findsOneWidget);
+        // Every translation offers a way to report a wording problem; English doesn't need one.
+        expect(find.text(t.helpTranslate), locale.languageCode == 'en' ? findsNothing : findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     });
