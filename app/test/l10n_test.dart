@@ -130,7 +130,8 @@ void main() {
     final ar = await AppLocalizations.delegate.load(const Locale('ar'));
     expect(ar.projectsCount(2), 'مشروعان');
     expect(ar.projectsCount(5), '5 مشاريع');
-    expect(ar.projectsCount(312), '312 مشروع');
+    expect(ar.projectsCount(312), '312 مشروعًا'); // ends in 11 to 99: the "many" form
+    expect(ar.projectsCount(100), '100 مشروع');
   });
 
   test('the language setting round-trips through the config', () {
