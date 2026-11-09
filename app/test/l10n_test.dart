@@ -119,6 +119,20 @@ void main() {
     expect(out['ar'], '\u206619.3\u00A0GB\u2069');
   });
 
+  test('sentences take their parts in the order they appear in English', () async {
+    final en = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(en.idleSummary('60', '19.3 GB', '6 folders'), 'Untouched for 60+ days · 19.3 GB of build output in 6 folders');
+    expect(en.legendWaiting('2.0 GB', 'in the Trash'), '2.0 GB waiting in the Trash');
+    expect(en.cleanedWithError('1.0 GB', 'Chrome cache', 'Chrome is open'), 'Cleaned 1.0 GB. Chrome cache: Chrome is open');
+    expect(en.putAwayResult(2, '3.0 GB'), 'Put away 3.0 GB, left 2 alone.');
+    final ja = await AppLocalizations.delegate.load(const Locale('ja'));
+    expect(ja.idleSummary('60', '19.3 GB', '6 個のフォルダ'), '60 日以上未使用 · 6 個のフォルダに 19.3 GB のビルド成果物');
+    final ar = await AppLocalizations.delegate.load(const Locale('ar'));
+    expect(ar.projectsCount(2), 'مشروعان');
+    expect(ar.projectsCount(5), '5 مشاريع');
+    expect(ar.projectsCount(312), '312 مشروع');
+  });
+
   test('the language setting round-trips through the config', () {
     final c = MothballConfig.fromJson({'language': 'ar'});
     expect(c.language, 'ar');

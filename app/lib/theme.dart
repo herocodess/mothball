@@ -141,7 +141,8 @@ ThemeData buildTheme(Brightness b, {List<String> fallback = const []}) {
     dialogTheme: DialogThemeData(
       backgroundColor: dark ? MB.cardDark : MB.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      titleTextStyle: TextStyle(fontFamily: MB.sans, fontFamilyFallback: fallback, fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.6, height: 1.2),
+      titleTextStyle: TextStyle(
+          fontFamily: MB.sans, fontFamilyFallback: fallback, color: scheme.onSurface, fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.6, height: 1.2),
     ),
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),

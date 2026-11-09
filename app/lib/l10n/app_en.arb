@@ -182,13 +182,13 @@
   "cleanedWithError": "Cleaned {size}. {name}: {error}",
   "@cleanedWithError": {
     "placeholders": {
-      "error": {
+      "size": {
         "type": "String"
       },
       "name": {
         "type": "String"
       },
-      "size": {
+      "error": {
         "type": "String"
       }
     }
@@ -236,10 +236,10 @@
   "legendWaiting": "{size} waiting {inTrash}",
   "@legendWaiting": {
     "placeholders": {
-      "inTrash": {
+      "size": {
         "type": "String"
       },
-      "size": {
+      "inTrash": {
         "type": "String"
       }
     }
@@ -271,10 +271,10 @@
       "days": {
         "type": "String"
       },
-      "folders": {
+      "size": {
         "type": "String"
       },
-      "size": {
+      "folders": {
         "type": "String"
       }
     }
