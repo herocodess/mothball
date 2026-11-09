@@ -62,7 +62,7 @@ String sizeOf(BuildContext context, int b) {
   final units = [t.unitKB, t.unitMB, t.unitGB, t.unitTB, 'PB', 'EB'];
   String s;
   if (b < 1024) {
-    s = '$b ${t.unitB}';
+    s = '$b\u00A0${t.unitB}';
   } else {
     var value = b / 1024;
     var i = 0;
@@ -70,13 +70,13 @@ String sizeOf(BuildContext context, int b) {
       value /= 1024;
       i++;
     }
-    s = '${decimal(context, value)} ${units[i]}';
+    s = '${decimal(context, value)}\u00A0${units[i]}';
   }
   return ltr(context, s);
 }
 
 /// A whole number of gigabytes, like the autopilot target.
-String gigabytes(BuildContext context, int gb) => ltr(context, '${NumberFormat.decimalPattern(_numbers(context)).format(gb)} ${context.t.unitGB}');
+String gigabytes(BuildContext context, int gb) => ltr(context, '${NumberFormat.decimalPattern(_numbers(context)).format(gb)}\u00A0${context.t.unitGB}');
 
 // Arabic text keeps Western digits (0-9), the same digits the counts and
 // paths around them use, so a size never mixes two kinds of numerals.

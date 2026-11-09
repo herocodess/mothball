@@ -1,11 +1,18 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mothball/language.dart';
 import 'package:mothball/places.dart';
 
-Widget host() => const MaterialApp(
-      home: Scaffold(
-        body: Align(alignment: Alignment.topRight, child: Padding(padding: EdgeInsets.all(40), child: ProjectMenu(path: '/tmp/x'))),
+Widget host({Locale locale = const Locale('en')}) => MaterialApp(
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: const Scaffold(
+        body: Align(
+          alignment: AlignmentDirectional.topEnd,
+          child: Padding(padding: EdgeInsets.all(40), child: ProjectMenu(path: '/tmp/x')),
+        ),
       ),
     );
 
@@ -36,6 +43,17 @@ void main() {
     expect(find.text('Copy path'), findsNothing);
   });
 
+  testWidgets('in Arabic the menu sits at the left and opens towards the middle', (t) async {
+    await t.pumpWidget(host(locale: const Locale('ar')));
+    await t.tap(find.byIcon(Icons.more_horiz));
+    await t.pumpAndSettle();
+    final button = t.getRect(find.byIcon(Icons.more_horiz).hitTestable());
+    final item = find.text('نسخ المسار');
+    expect(item, findsOneWidget);
+    expect(button.left, lessThan(200), reason: 'the button is at the start (left) of a right-to-left screen');
+    expect(t.getRect(item).left, greaterThan(button.left - 12), reason: 'the menu hangs from the button towards the right');
+  });
+
   testWidgets('a click opens the menu and keeps it open until a click outside', (t) async {
     await t.pumpWidget(host());
     await t.tap(find.byIcon(Icons.more_horiz));
@@ -50,6 +68,8 @@ void main() {
 
   testWidgets('right-click menu opens at the pointer and closes on a click elsewhere', (t) async {
     await t.pumpWidget(MaterialApp(
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: Scaffold(
         body: Builder(
           builder: (context) => GestureDetector(

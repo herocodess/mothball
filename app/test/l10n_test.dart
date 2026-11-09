@@ -113,10 +113,10 @@ void main() {
         }),
       ));
     }
-    expect(out['en'], '19.3 GB');
-    expect(out['fr'], '19,3 Go');
+    expect(out['en'], '19.3\u00A0GB');
+    expect(out['fr'], '19,3\u00A0Go');
     // Arabic keeps Western digits and holds the size together left to right.
-    expect(out['ar'], '⁦19.3 GB⁩');
+    expect(out['ar'], '\u206619.3\u00A0GB\u2069');
   });
 
   test('the language setting round-trips through the config', () {
