@@ -79,7 +79,7 @@ Map<String, dynamic> sample({required bool fullDisk, required bool onboarded}) {
         {'id': 'gradle', 'name': 'Gradle caches', 'policy': 'ask', 'bytes': 10630044058, 'how': 'Moves Gradle caches to the Trash while no Gradle daemon is running.'},
         {'id': 'cocoapods', 'name': 'CocoaPods cache', 'policy': 'auto', 'bytes': 5476083302, 'how': 'Runs pod cache clean --all.'},
         {'id': 'npm', 'name': 'npm cache', 'policy': 'auto', 'bytes': 2684354560, 'how': 'Runs npm cache clean --force.'},
-        {'id': 'vscode', 'name': 'VS Code caches', 'policy': 'auto', 'bytes': 912680550, 'how': 'Moves web caches to the Trash while VS Code is closed.', 'blocked': 'Code is running'},
+        {'id': 'vscode', 'name': 'VS Code caches', 'policy': 'auto', 'bytes': 912680550, 'how': 'Moves web caches to the Trash while VS Code is closed.', 'blocked': 'Code is running', 'blockedBy': 'Code'},
         {'id': 'android-emulators', 'name': 'Android emulators', 'policy': 'report', 'bytes': 12133306368, 'how': 'Delete emulators you no longer use in Android Studio.'},
       ],
       'cacheBytes': 26306674688,
@@ -89,8 +89,8 @@ Map<String, dynamic> sample({required bool fullDisk, required bool onboarded}) {
       {'path': '/Users/hero/dev/driftlog', 'name': 'driftlog', 'since': '2026-09-20T10:00:00Z', 'bytes': 1240000000, 'returned': false, 'commands': ['pnpm install']},
     ],
     'events': [
-      {'at': '2026-10-30T09:00:00Z', 'kind': 'autopilot', 'message': 'Put away build output from idle projects; it is emptied from the Trash after the grace period', 'bytes': 9126805504},
-      {'at': '2026-10-31T09:00:00Z', 'kind': 'emptied', 'message': 'Emptied folders Mothball put in the Trash', 'bytes': 4294967296},
+      {'at': '2026-10-30T09:00:00Z', 'kind': 'autopilot', 'message': 'Put away build output from idle projects; it is emptied from the Trash after the grace period', 'bytes': 9126805504, 'code': 'putAwayEmptiesLater'},
+      {'at': '2026-10-31T09:00:00Z', 'kind': 'emptied', 'message': 'Emptied folders Mothball put in the Trash', 'bytes': 4294967296, 'code': 'emptied'},
     ],
   };
 }
