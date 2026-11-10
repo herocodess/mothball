@@ -44,7 +44,16 @@ class Candidate {
 }
 
 class CacheInfo {
-  CacheInfo({required this.id, required this.name, required this.policy, required this.bytes, required this.how, required this.blocked});
+  CacheInfo({
+    required this.id,
+    required this.name,
+    required this.policy,
+    required this.bytes,
+    required this.how,
+    required this.blocked,
+    this.blockedBy = '',
+    this.missingTool = '',
+  });
 
   factory CacheInfo.fromJson(Map<String, dynamic> j) => CacheInfo(
         id: _str(j['id']),
@@ -53,6 +62,8 @@ class CacheInfo {
         bytes: _int(j['bytes']),
         how: _str(j['how']),
         blocked: _str(j['blocked']),
+        blockedBy: _str(j['blockedBy']),
+        missingTool: _str(j['missingTool']),
       );
 
   final String id;
@@ -60,7 +71,9 @@ class CacheInfo {
   final String policy; // auto, ask or report
   final int bytes;
   final String how;
-  final String blocked;
+  final String blocked; // why it can't be cleaned now, in English
+  final String blockedBy; // the open app that blocks it
+  final String missingTool; // the tool that isn't installed
 
   bool get canClean => policy != 'report' && blocked.isEmpty;
 }
@@ -132,19 +145,23 @@ class MothballedProject {
 }
 
 class ServiceEvent {
-  ServiceEvent({required this.at, required this.kind, required this.message, required this.bytes});
+  ServiceEvent({required this.at, required this.kind, required this.message, required this.bytes, this.code = '', this.arg = ''});
 
   factory ServiceEvent.fromJson(Map<String, dynamic> j) => ServiceEvent(
         at: _time(j['at']),
         kind: _str(j['kind']),
         message: _str(j['message']),
         bytes: _int(j['bytes']),
+        code: _str(j['code']),
+        arg: _str(j['arg']),
       );
 
   final DateTime? at;
   final String kind;
-  final String message;
+  final String message; // in English
   final int bytes;
+  final String code; // names a fixed message the app translates; '' for errors
+  final String arg; // the message's one variable part, like a version
 }
 
 class AccessInfo {

@@ -51,6 +51,10 @@ type Cache struct {
 	// Blocked says why it cannot be cleaned right now (an app is running, the
 	// tool is missing). Empty when it can.
 	Blocked string `json:"blocked,omitempty"`
+	// BlockedBy names the open app that blocks it, and MissingTool the tool
+	// that is not installed, so the desktop app can say it in any language.
+	BlockedBy   string `json:"blockedBy,omitempty"`
+	MissingTool string `json:"missingTool,omitempty"`
 
 	def *def
 }
@@ -468,12 +472,12 @@ func (k *Kit) Survey() []Cache {
 					if d.paths == nil {
 						return // nothing to show without the tool
 					}
-					c.Blocked = d.cmd[0] + " is not installed"
+					c.Blocked, c.MissingTool = d.cmd[0]+" is not installed", d.cmd[0]
 				}
 			}
 			if c.Blocked == "" && len(d.running) > 0 {
 				if r := k.Running(d.running); r != "" {
-					c.Blocked = r + " is running"
+					c.Blocked, c.BlockedBy = r+" is running", r
 				}
 			}
 			mu.Lock()

@@ -91,10 +91,25 @@ func cleanable(cs []caches.Cache) int64 {
 // Event is something worth telling the user about.
 type Event struct {
 	At      time.Time `json:"at"`
-	Kind    string    `json:"kind"` // autopilot, emptied, error
+	Kind    string    `json:"kind"` // autopilot, emptied, update, error
 	Message string    `json:"message"`
 	Bytes   int64     `json:"bytes,omitempty"`
+	// Code names the message so the desktop app can show it in the user's
+	// language; Arg is its one variable part (a version). Errors have no
+	// code: their message is the error itself.
+	Code string `json:"code,omitempty"`
+	Arg  string `json:"arg,omitempty"`
 }
+
+// Event codes, one per fixed message.
+const (
+	CodePutAwayEmptiesLater = "putAwayEmptiesLater"
+	CodePutAwayEmptyTrash   = "putAwayEmptyTrash"
+	CodeCleanedCaches       = "cleanedCaches"
+	CodeNothingToPutAway    = "nothingToPutAway"
+	CodeEmptied             = "emptied"
+	CodeUpdateRequired      = "updateRequired"
+)
 
 // New makes a service using the real disk, Trash and clock.
 func New(dir, home string, packs *pack.Set) (*Service, error) {
@@ -346,7 +361,7 @@ func (s *Service) Tick() {
 		freed, errs := purge.Run(due, s.log, s.Now())
 		s.moveMu.Unlock()
 		if freed > 0 {
-			s.event("emptied", "Emptied folders Mothball put in the Trash", freed)
+			s.coded("emptied", CodeEmptied, "", "Emptied folders Mothball put in the Trash", freed)
 		}
 		for _, e := range errs {
 			s.event("error", e.Error(), 0)
@@ -397,13 +412,11 @@ func (s *Service) Tick() {
 				moved += o.Candidate.Bytes
 			}
 		}
-		msg := "Put away build output from idle projects"
 		if c.AutoEmptyDays > 0 {
-			msg += "; it is emptied from the Trash after the grace period"
+			s.coded("autopilot", CodePutAwayEmptiesLater, "", "Put away build output from idle projects; it is emptied from the Trash after the grace period", moved)
 		} else {
-			msg += "; empty the Trash to free the space"
+			s.coded("autopilot", CodePutAwayEmptyTrash, "", "Put away build output from idle projects; empty the Trash to free the space", moved)
 		}
-		s.event("autopilot", msg, moved)
 	}
 	// Still short: clean the caches that only cost a re-download, largest first.
 	var fromCaches int64
@@ -422,10 +435,10 @@ func (s *Service) Tick() {
 		fromCaches += n
 	}
 	if fromCaches > 0 {
-		s.event("autopilot", "Cleaned caches that download again when needed", fromCaches)
+		s.coded("autopilot", CodeCleanedCaches, "", "Cleaned caches that download again when needed", fromCaches)
 	}
 	if moved+fromCaches == 0 {
-		s.event("autopilot", "Free space is below target, but there is nothing idle or cached to put away", 0)
+		s.coded("autopilot", CodeNothingToPutAway, "", "Free space is below target, but there is nothing idle or cached to put away", 0)
 	}
 	s.moveMu.Unlock()
 	_, _ = s.scanLocked()
@@ -437,10 +450,13 @@ func (s *Service) recentEvents() []Event {
 	return append([]Event(nil), s.events...)
 }
 
-func (s *Service) event(kind, msg string, bytes int64) {
+func (s *Service) event(kind, msg string, bytes int64) { s.coded(kind, "", "", msg, bytes) }
+
+// coded records an event with a fixed message the app can translate.
+func (s *Service) coded(kind, code, arg, msg string, bytes int64) {
 	s.evMu.Lock()
 	defer s.evMu.Unlock()
-	s.events = append(s.events, Event{At: s.Now(), Kind: kind, Message: msg, Bytes: bytes})
+	s.events = append(s.events, Event{At: s.Now(), Kind: kind, Message: msg, Bytes: bytes, Code: code, Arg: arg})
 	if len(s.events) > 50 {
 		s.events = s.events[len(s.events)-50:]
 	}
@@ -484,7 +500,7 @@ func (s *Service) CheckUpdate() update.State {
 	defer cancel()
 	st, _ := s.Update.Check(ctx)
 	if st.Required {
-		s.event("update", "Mothball "+st.Latest+" is required before anything else is put away", 0)
+		s.coded("update", CodeUpdateRequired, st.Latest, "Mothball "+st.Latest+" is required before anything else is put away", 0)
 	}
 	return st
 }

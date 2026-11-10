@@ -621,5 +621,239 @@
   },
   "noNotes": "This release has no notes.",
   "viewOnGitHub": "View on GitHub",
-  "updateNow": "Update now"
+  "updateNow": "Update now",
+  "cacheXcodeDerivedDataName": "Xcode DerivedData",
+  "cacheXcodeDerivedDataHow": "Moves Xcode's build data {toTrash}. Xcode rebuilds it on the next build.",
+  "@cacheXcodeDerivedDataHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheSimulatorCachesName": "Simulator caches",
+  "cacheSimulatorCachesHow": "Moves simulator caches {toTrash}. They are rebuilt when a simulator boots.",
+  "@cacheSimulatorCachesHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheSimulatorsUnavailableName": "Simulators for removed iOS versions",
+  "cacheSimulatorsUnavailableHow": "Runs xcrun simctl delete unavailable, which removes simulators whose iOS version is gone.",
+  "cacheXcodeDeviceSupportName": "Xcode device support",
+  "cacheXcodeDeviceSupportHow": "Keeps the newest iOS version and moves older ones {toTrash}. Xcode copies it again when a device on that version is plugged in.",
+  "@cacheXcodeDeviceSupportHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheNpmName": "npm cache",
+  "@cacheNpmName": {
+    "description": "Cache names: keep product and tool names (npm, Xcode, Chrome) as they are; translate only words like 'cache', 'downloads', 'packages'."
+  },
+  "cacheNpmHow": "Runs npm cache clean --force. Packages download again when needed.",
+  "@cacheNpmHow": {
+    "description": "Cache descriptions: keep commands (npm cache clean --force, pod install) exactly as written, in Latin letters. {toTrash} is 'to the Trash' or 'to the Recycle Bin'."
+  },
+  "cacheYarnName": "Yarn cache",
+  "cacheYarnHow": "Runs yarn cache clean.",
+  "cachePnpmName": "pnpm store",
+  "cachePnpmHow": "Runs pnpm store prune, which removes packages no project uses.",
+  "cacheBunName": "Bun cache",
+  "cacheBunHow": "Runs bun pm cache rm.",
+  "cachePipName": "pip cache",
+  "cachePipHow": "Runs pip cache purge.",
+  "cacheUvName": "uv cache",
+  "cacheUvHow": "Runs uv cache prune, which removes entries no project uses.",
+  "cacheCocoapodsName": "CocoaPods cache",
+  "cacheCocoapodsHow": "Runs pod cache clean --all. Pods download again on the next pod install.",
+  "cacheHomebrewName": "Homebrew downloads",
+  "cacheHomebrewHow": "Runs brew cleanup --prune=all, which removes old versions and downloads.",
+  "cacheGradleName": "Gradle caches",
+  "cacheGradleHow": "Moves Gradle's caches {toTrash} while no Gradle daemon is running. Dependencies download again on the next build.",
+  "@cacheGradleHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheGoModulesName": "Go module cache",
+  "cacheGoModulesHow": "Runs go clean -modcache. Modules download again on the next build.",
+  "cachePubName": "Dart and Flutter packages",
+  "cachePubHow": "Runs dart pub cache clean. Run flutter pub get in a project to fetch its packages again.",
+  "cacheCargoName": "Cargo registry",
+  "cacheCargoHow": "Shown for information. Clean it with cargo-cache if you use it.",
+  "cacheAndroidEmulatorsName": "Android emulators",
+  "cacheAndroidEmulatorsHow": "Shown for information. Delete emulators you no longer use in Android Studio's Device Manager.",
+  "cacheVscodeName": "VS Code caches",
+  "cacheVscodeHow": "Moves VS Code's web caches and downloaded extension packages {toTrash} while VS Code is closed. Installed extensions keep working.",
+  "@cacheVscodeHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheCursorName": "Cursor caches",
+  "cacheCursorHow": "Moves Cursor's web caches and downloaded extension packages {toTrash} while Cursor is closed. Installed extensions keep working.",
+  "@cacheCursorHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheSlackName": "Slack caches",
+  "cacheSlackHow": "Moves Slack's web caches {toTrash} while Slack is closed.",
+  "@cacheSlackHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheChromeName": "Chrome cache",
+  "cacheChromeHow": "Moves Chrome's page cache {toTrash} while Chrome is closed. Bookmarks, history, passwords and sign-ins are not touched.",
+  "@cacheChromeHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheEdgeName": "Edge cache",
+  "cacheEdgeHow": "Moves Edge's page cache {toTrash} while Edge is closed. Favourites, history, passwords and sign-ins are not touched.",
+  "@cacheEdgeHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheBraveName": "Brave cache",
+  "cacheBraveHow": "Moves Brave's page cache {toTrash} while Brave is closed. Bookmarks, history, passwords and sign-ins are not touched.",
+  "@cacheBraveHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheFirefoxName": "Firefox cache",
+  "cacheFirefoxHow": "Moves Firefox's page cache {toTrash} while Firefox is closed. Bookmarks, history, passwords and sign-ins are not touched.",
+  "@cacheFirefoxHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheTeamsName": "Microsoft Teams cache",
+  "cacheTeamsHow": "Moves Teams' cached app files {toTrash} while Teams is closed. Chats and sign-in are not touched; Teams downloads what it needs on the next start.",
+  "@cacheTeamsHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheDiscordName": "Discord cache",
+  "cacheDiscordHow": "Moves Discord's web caches {toTrash} while Discord is closed.",
+  "@cacheDiscordHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheNotionName": "Notion cache",
+  "cacheNotionHow": "Moves Notion's web caches {toTrash} while Notion is closed. Your pages live in Notion and are not touched.",
+  "@cacheNotionHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheFigmaName": "Figma cache",
+  "cacheFigmaHow": "Moves the Figma app's web caches {toTrash} while Figma is closed. Your files live in Figma and are not touched.",
+  "@cacheFigmaHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheObsidianName": "Obsidian cache",
+  "cacheObsidianHow": "Moves Obsidian's web caches {toTrash} while Obsidian is closed. Your vaults are not touched.",
+  "@cacheObsidianHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheClaudeName": "Claude app cache",
+  "cacheClaudeHow": "Moves the Claude desktop app's web caches {toTrash} while it is closed. Chats and settings are not touched.",
+  "@cacheClaudeHow": {
+    "placeholders": {
+      "toTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheWaitingOpen": "Waiting: {app} is open",
+  "@cacheWaitingOpen": {
+    "description": "{app} is the name of the program that is open, as the system reports it (Xcode, Google Chrome, Code).",
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "cacheWaitingMissing": "Waiting: {tool} is not installed",
+  "@cacheWaitingMissing": {
+    "description": "{tool} is a command-line tool, like npm or pod.",
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      }
+    }
+  },
+  "eventUpdate": "Update needed",
+  "eventPutAwayEmptiesLater": "Put away build output from idle projects. Mothball empties it after the grace period.",
+  "@eventPutAwayEmptiesLater": {
+    "description": "Details under 'Lately', after autopilot put things away and auto-empty is on."
+  },
+  "eventPutAwayEmptyTrash": "Put away build output from idle projects. It is waiting {inTrash}; empty it to free the space.",
+  "@eventPutAwayEmptyTrash": {
+    "placeholders": {
+      "inTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "eventCleanedCaches": "Cleaned caches that download again when needed.",
+  "eventNothingToPutAway": "Free space is below your target, but nothing idle or cached is left to put away.",
+  "eventEmptiedDetail": "Emptied the folders Mothball put {inTrash}.",
+  "@eventEmptiedDetail": {
+    "placeholders": {
+      "inTrash": {
+        "type": "String"
+      }
+    }
+  },
+  "eventUpdateRequired": "Mothball {version} is required before anything else is put away.",
+  "@eventUpdateRequired": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  }
 }
