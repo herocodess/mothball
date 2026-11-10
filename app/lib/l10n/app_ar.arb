@@ -176,7 +176,7 @@
   "cacheSimulatorsUnavailableName": "محاكيات لإصدارات iOS المحذوفة",
   "cacheSimulatorsUnavailableHow": "يشغّل الأمر ⁦xcrun simctl delete unavailable⁩ الذي يزيل المحاكيات التي لم يعد إصدار iOS الخاص بها موجودًا.",
   "cacheXcodeDeviceSupportName": "دعم الأجهزة في Xcode",
-  "cacheXcodeDeviceSupportHow": "يُبقي أحدث إصدار من iOS وينقل الإصدارات الأقدم {toTrash}. ينسخه Xcode مجددًا عند توصيل جهاز يعمل بذلك الإصدار.",
+  "cacheXcodeDeviceSupportHow": "يُبقي أحدث إصدار من iOS وينقل الإصدارات الأقدم {toTrash}. يعيد Xcode نسخ ملفات الدعم عند توصيل جهاز يعمل بأحد تلك الإصدارات.",
   "cacheNpmName": "ذاكرة التخزين المؤقت لـ npm",
   "cacheNpmHow": "يشغّل الأمر ⁦npm cache clean --force⁩. تُنزَّل الحزم مجددًا عند الحاجة.",
   "cacheYarnName": "ذاكرة التخزين المؤقت لـ Yarn",
@@ -233,9 +233,9 @@
   "cacheWaitingMissing": "في الانتظار: {tool} غير مثبّت",
   "eventUpdate": "يلزم التحديث",
   "eventPutAwayEmptiesLater": "وُضعت مخرجات البناء من المشاريع الخاملة جانبًا. سيُفرغها Mothball بعد انتهاء مهلة السماح.",
-  "eventPutAwayEmptyTrash": "وُضعت مخرجات البناء من المشاريع الخاملة جانبًا. إنها تنتظر {inTrash}، أفرغها لتحرير المساحة.",
+  "eventPutAwayEmptyTrash": "وُضعت مخرجات البناء من المشاريع الخاملة جانبًا. إنها تنتظر {inTrash}. أفرغ السلة لتحرير المساحة.",
   "eventCleanedCaches": "تم تنظيف ذاكرة التخزين المؤقت التي تُنزَّل مجددًا عند الحاجة.",
-  "eventNothingToPutAway": "المساحة الحرة أقل من هدفك، لكن لم يتبقَّ شيء خامل أو مؤقت لوضعه جانبًا.",
+  "eventNothingToPutAway": "المساحة الحرة أقل من هدفك، لكن لم يتبقَّ شيء خامل أو مخزَّن مؤقتًا لوضعه جانبًا.",
   "eventEmptiedDetail": "تم إفراغ المجلدات التي وضعها Mothball {inTrash}.",
   "eventUpdateRequired": "يلزم Mothball {version} قبل وضع أي شيء آخر جانبًا."
 }

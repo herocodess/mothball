@@ -198,7 +198,7 @@
   "cacheGoModulesName": "Go 模块缓存",
   "cacheGoModulesHow": "运行 go clean -modcache。下次构建时会重新下载模块。",
   "cachePubName": "Dart 和 Flutter 软件包",
-  "cachePubHow": "运行 dart pub cache clean。在项目中运行 flutter pub get 即可重新获取它的软件包。",
+  "cachePubHow": "运行 dart pub cache clean。在项目中运行 flutter pub get 即可重新获取该项目的软件包。",
   "cacheCargoName": "Cargo 注册表",
   "cacheCargoHow": "仅供参考。如果你在使用 cargo-cache，可以用它来清理。",
   "cacheAndroidEmulatorsName": "Android 模拟器",
@@ -232,10 +232,10 @@
   "cacheWaitingOpen": "等待中：{app} 正在运行",
   "cacheWaitingMissing": "等待中：未安装 {tool}",
   "eventUpdate": "需要更新",
-  "eventPutAwayEmptiesLater": "已收起闲置项目的构建产物。宽限期过后，Mothball 会将其清空。",
+  "eventPutAwayEmptiesLater": "已收起闲置项目的构建产物。宽限期过后，Mothball 会将其永久删除。",
   "eventPutAwayEmptyTrash": "已收起闲置项目的构建产物。它们正{inTrash}等待清除，清空后即可释放空间。",
   "eventCleanedCaches": "已清理需要时会重新下载的缓存。",
-  "eventNothingToPutAway": "可用空间低于你的目标，但已没有闲置项目或缓存可以收起。",
-  "eventEmptiedDetail": "已清空 Mothball 放{inTrash}的文件夹。",
+  "eventNothingToPutAway": "可用空间低于你的目标，但已没有可收起的闲置项目或可清理的缓存。",
+  "eventEmptiedDetail": "已永久删除 Mothball 放{inTrash}的文件夹。",
   "eventUpdateRequired": "需要先更新到 Mothball {version}，才能继续收起任何东西。"
 }

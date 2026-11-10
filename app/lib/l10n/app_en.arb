@@ -643,7 +643,7 @@
   "cacheSimulatorsUnavailableName": "Simulators for removed iOS versions",
   "cacheSimulatorsUnavailableHow": "Runs xcrun simctl delete unavailable, which removes simulators whose iOS version is gone.",
   "cacheXcodeDeviceSupportName": "Xcode device support",
-  "cacheXcodeDeviceSupportHow": "Keeps the newest iOS version and moves older ones {toTrash}. Xcode copies it again when a device on that version is plugged in.",
+  "cacheXcodeDeviceSupportHow": "Keeps the newest iOS version and moves older ones {toTrash}. Xcode copies a version's files again when you plug in a device that uses it.",
   "@cacheXcodeDeviceSupportHow": {
     "placeholders": {
       "toTrash": {
