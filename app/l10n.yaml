@@ -1,0 +1,9 @@
+# Translations live in lib/l10n as one .arb file per language; English
+# (app_en.arb) is the source. `flutter gen-l10n` (also run by `flutter pub get`)
+# writes app_localizations*.dart next to them.
+arb-dir: lib/l10n
+output-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

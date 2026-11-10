@@ -1,9 +1,6 @@
 // Data shapes returned by the Mothball service. They mirror the Go structs in
 // core/service, core/scan, core/wake and core/config.
 
-/// "1 project", "3 projects".
-String plural(int n, String word) => '$n ${n == 1 ? word : '${word}s'}';
-
 List<dynamic> _list(Object? v) => v is List ? v : const [];
 int _int(Object? v) => v is num ? v.toInt() : 0;
 bool _bool(Object? v) => v == true;
@@ -176,6 +173,7 @@ class MothballConfig {
     this.onboarded = false,
     this.skipUpdateCheck = false,
     this.theme = 'system',
+    this.language = '',
   });
 
   factory MothballConfig.fromJson(Map<String, dynamic> j) => MothballConfig(
@@ -188,6 +186,7 @@ class MothballConfig {
         onboarded: _bool(j['onboarded']),
         skipUpdateCheck: _bool(j['skipUpdateCheck']),
         theme: _str(j['theme']).isEmpty ? 'system' : _str(j['theme']),
+        language: _str(j['language']),
       );
 
   final List<String> roots;
@@ -199,6 +198,7 @@ class MothballConfig {
   final bool onboarded;
   final bool skipUpdateCheck;
   final String theme; // system, light or dark
+  final String language; // '' follows the system, else a code like 'fr'
 
   MothballConfig copyWith({
     List<String>? roots,
@@ -209,6 +209,7 @@ class MothballConfig {
     bool? onboarded,
     bool? skipUpdateCheck,
     String? theme,
+    String? language,
   }) =>
       MothballConfig(
         roots: roots ?? this.roots,
@@ -220,6 +221,7 @@ class MothballConfig {
         onboarded: onboarded ?? this.onboarded,
         skipUpdateCheck: skipUpdateCheck ?? this.skipUpdateCheck,
         theme: theme ?? this.theme,
+        language: language ?? this.language,
       );
 
   Map<String, dynamic> toJson() => {
@@ -228,6 +230,7 @@ class MothballConfig {
         'autopilot': autopilot,
         'skipUpdateCheck': skipUpdateCheck,
         'theme': theme,
+        'language': language,
         'targetFreeGB': targetFreeGB,
         'autoEmptyDays': autoEmptyDays,
         'checkMinutes': checkMinutes,

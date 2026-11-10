@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'language.dart';
+
 /// Mothball's palette and type: Instrument Sans throughout, set heavier and
 /// tighter for the big moments.
 class MB {
@@ -13,16 +15,23 @@ class MB {
   static const card = Color(0xFFFFFFFF);
   static const cardDark = Color(0xFF161A20);
 
-  /// Display text for numbers and headlines.
+  /// Display text for numbers and headlines. Tight spacing for Latin
+  /// letters; normal spacing and a little more line height otherwise, so
+  /// Arabic letters stay joined and Chinese and Japanese breathe.
   static TextStyle display(BuildContext context, double size, {Color? color, FontStyle? style}) => TextStyle(
         fontFamily: sans,
         fontSize: size,
         fontWeight: FontWeight.w600,
-        height: 1.08,
-        letterSpacing: -0.035 * size,
+        height: latinScript(context) ? 1.08 : 1.3,
+        letterSpacing: latinScript(context) ? -0.035 * size : 0,
         fontStyle: style,
         color: color ?? Theme.of(context).colorScheme.onSurface,
       );
+
+  /// A small all-caps label, like FREE SPACE. Only Latin letters have
+  /// capitals and take the wide spacing.
+  static (String, double) caps(BuildContext context, String text, double spacing) =>
+      latinScript(context) ? (text.toUpperCase(), spacing) : (text, 0);
 
   /// Quiet secondary text colour.
   static Color quiet(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant;
@@ -48,7 +57,18 @@ ThemeMode themeModeOf(String name) => switch (name) {
       _ => ThemeMode.system,
     };
 
-ThemeData buildTheme(Brightness b) {
+/// System fonts for the letters Instrument Sans doesn't have, in the order
+/// each language prefers. Chinese and Japanese share characters but draw
+/// them differently, so each lists its own fonts first. The names cover
+/// macOS, Windows and common Linux installs; missing ones are skipped.
+List<String> fallbackFonts(String languageCode) => switch (languageCode) {
+      'ar' => const ['SF Arabic', 'Geeza Pro', 'Segoe UI', 'Noto Sans Arabic', 'Noto Naskh Arabic'],
+      'ja' => const ['Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Meiryo UI', 'Noto Sans CJK JP', 'Noto Sans JP'],
+      'zh' => const ['PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Noto Sans CJK SC', 'Noto Sans SC'],
+      _ => const [],
+    };
+
+ThemeData buildTheme(Brightness b, {List<String> fallback = const []}) {
   final dark = b == Brightness.dark;
   final scheme = ColorScheme.fromSeed(seedColor: MB.accent, brightness: b).copyWith(
     primary: dark ? MB.accent : MB.accentDeep,
@@ -58,15 +78,16 @@ ThemeData buildTheme(Brightness b) {
     onSurfaceVariant: dark ? const Color(0xFF9AA1AB) : const Color(0xFF5E646D),
     error: dark ? const Color(0xFFFF8A80) : const Color(0xFFB3261E),
   );
-  final base = ThemeData(brightness: b, useMaterial3: true, fontFamily: MB.sans);
+  final base = ThemeData(brightness: b, useMaterial3: true, fontFamily: MB.sans, fontFamilyFallback: fallback);
   final text = base.textTheme.apply(
     fontFamily: MB.sans,
+    fontFamilyFallback: fallback,
     bodyColor: scheme.onSurface,
     displayColor: scheme.onSurface,
   );
   final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
   const pad = EdgeInsets.symmetric(horizontal: 18, vertical: 14);
-  const label = TextStyle(fontFamily: MB.sans, fontWeight: FontWeight.w600, fontSize: 14, letterSpacing: 0);
+  final label = TextStyle(fontFamily: MB.sans, fontFamilyFallback: fallback, fontWeight: FontWeight.w600, fontSize: 14, letterSpacing: 0);
   return base.copyWith(
     colorScheme: scheme,
     scaffoldBackgroundColor: scheme.surface,
@@ -107,25 +128,37 @@ ThemeData buildTheme(Brightness b) {
       tickMarkShape: SliderTickMarkShape.noTickMark,
     ),
     tooltipTheme: TooltipThemeData(
-      textStyle: const TextStyle(fontFamily: MB.sans, fontSize: 12, color: Colors.white),
+      textStyle: TextStyle(fontFamily: MB.sans, fontFamilyFallback: fallback, fontSize: 12, color: Colors.white),
       decoration: BoxDecoration(color: MB.ink.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(8)),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: dark ? const Color(0xFFEDEEEA) : MB.ink,
-      contentTextStyle: TextStyle(fontFamily: MB.sans, color: dark ? MB.ink : Colors.white, fontSize: 14),
+      contentTextStyle: TextStyle(fontFamily: MB.sans, fontFamilyFallback: fallback, color: dark ? MB.ink : Colors.white, fontSize: 14),
       shape: shape,
       width: 520,
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: dark ? MB.cardDark : MB.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      titleTextStyle: const TextStyle(fontFamily: MB.sans, fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.6, height: 1.2),
+      titleTextStyle: TextStyle(
+          fontFamily: MB.sans, fontFamilyFallback: fallback, color: scheme.onSurface, fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.6, height: 1.2),
     ),
     pageTransitionsTheme: const PageTransitionsTheme(builders: {
       TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),
       TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
       TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
     }),
+  );
+}
+
+/// The theme for a language not written in Latin letters: its own fallback
+/// fonts, and no tight tracking on dialog titles (Arabic letters must join).
+ThemeData forScript(ThemeData t, String languageCode) {
+  final themed = buildTheme(t.brightness, fallback: fallbackFonts(languageCode));
+  return themed.copyWith(
+    dialogTheme: themed.dialogTheme.copyWith(
+      titleTextStyle: themed.dialogTheme.titleTextStyle?.copyWith(letterSpacing: 0, height: 1.35),
+    ),
   );
 }

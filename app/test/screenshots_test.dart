@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mothball/api.dart';
+import 'package:mothball/language.dart';
 import 'package:mothball/main.dart';
 import 'package:mothball/models.dart';
 import 'package:mothball/settings.dart';
@@ -140,6 +141,17 @@ Future<void> loadFonts() async {
     for (final w in ['Regular', 'Italic', 'Medium', 'SemiBold']) '$fonts/InstrumentSans-$w.ttf',
   ]);
   await load('Menlo', ['/System/Library/Fonts/Menlo.ttc']);
+  // Arabic, Chinese and Japanese come from the system fonts macOS falls back
+  // to in the real app.
+  await load('SF Arabic', ['/System/Library/Fonts/SFArabic.ttf']);
+  await load('Hiragino Sans', [
+    for (final w in ['W3', 'W6']) '/System/Library/Fonts/\u30d2\u30e9\u30ae\u30ce\u89d2\u30b4\u30b7\u30c3\u30af $w.ttc',
+  ]);
+  // Chinese lists PingFang SC first, which lives outside /System/Library/Fonts;
+  // Hiragino Sans GB stands in for it here.
+  for (final family in ['PingFang SC', 'Hiragino Sans GB']) {
+    await load(family, ['/System/Library/Fonts/Hiragino Sans GB.ttc']);
+  }
 
   // The Flutter SDK folder: FLUTTER_ROOT when set, else found from the test runner's path.
   var sdk = Platform.environment['FLUTTER_ROOT'] ?? '';
@@ -192,6 +204,8 @@ void main() {
       MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: buildTheme(Brightness.light),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: SettingsScreen(config: c, onSave: (_) async {}),
       ),
       '4-settings',
@@ -211,4 +225,29 @@ void main() {
   testWidgets('12-whats-new', (t) => shoot(t, MothballApp(api: FakeApi(withUpdate(sample(fullDisk: true, onboarded: true), {}))), '12-whats-new',
       size: const Size(1100, 860), before: (t) => t.tap(find.text("What's new"))));
   testWidgets('not running', (t) => shoot(t, MothballApp(api: MothballApi(dir: '/nonexistent')), '5-not-running', size: const Size(1100, 760)));
+
+  // Every screen in every language, for translation review:
+  //   flutter test --update-goldens --tags screenshots --plain-name languages test/screenshots_test.dart
+  group('languages', () {
+    for (final locale in AppLocalizations.supportedLocales) {
+      final code = locale.languageCode;
+      if (code == 'en') continue;
+      MothballApp app(Map<String, dynamic> json) => MothballApp(api: FakeApi(json), locale: locale);
+      testWidgets('$code home', (t) => shoot(t, app(sample(fullDisk: true, onboarded: true)), 'languages/$code-1-home', size: const Size(1100, 2240)));
+      testWidgets('$code onboarding', (t) => shoot(t, app(sample(fullDisk: false, onboarded: false)), 'languages/$code-2-onboarding'));
+      testWidgets('$code reminder', (t) => shoot(t, app(sample(fullDisk: false, onboarded: true)), 'languages/$code-3-home-reminder', size: const Size(1100, 640)));
+      testWidgets('$code settings', (t) => shoot(t, app(sample(fullDisk: true, onboarded: true)), 'languages/$code-4-settings',
+          size: const Size(1100, 1500), before: (t) => t.tap(find.byIcon(Icons.tune_rounded))));
+      testWidgets('$code update', (t) => shoot(t, app(withUpdate(sample(fullDisk: true, onboarded: true), {})), 'languages/$code-5-update',
+          size: const Size(1100, 760)));
+      testWidgets('$code update required', (t) => shoot(t, app(withUpdate(sample(fullDisk: true, onboarded: true), {'required': true})),
+          'languages/$code-6-update-required', size: const Size(1100, 760)));
+      testWidgets('$code not running', (t) => shoot(t, MothballApp(api: MothballApi(dir: '/nonexistent'), locale: locale),
+          'languages/$code-7-not-running', size: const Size(1100, 760)));
+      testWidgets('$code put away dialog', (t) => shoot(t, app(sample(fullDisk: true, onboarded: true)), 'languages/$code-8-put-away',
+          size: const Size(1100, 860), before: (t) => t.tap(find.byIcon(Icons.inventory_2_outlined).first)));
+      testWidgets('$code project menu', (t) => shoot(t, app(sample(fullDisk: true, onboarded: true)), 'languages/$code-9-menu',
+          size: const Size(1100, 1000), before: (t) => t.tap(find.byIcon(Icons.more_horiz).first)));
+    }
+  });
 }

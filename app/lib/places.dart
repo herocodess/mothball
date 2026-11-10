@@ -4,17 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'language.dart';
 import 'theme.dart';
 
 /// Where a project lives on disk, and ways to go and look at it.
 class Places {
-  /// What the system's file manager is called, for menu labels.
-  static String get fileManager {
-    if (Platform.isMacOS) return 'Finder';
-    if (Platform.isWindows) return 'File Explorer';
-    return 'Files';
-  }
-
   /// Opens a folder in the system's file manager.
   static Future<void> open(String path) async {
     if (path.isEmpty) return;
@@ -73,13 +67,14 @@ class ProjectMenu extends StatefulWidget {
   /// Runs a menu choice.
   static Future<void> run(BuildContext context, ProjectAction a, String path) async {
     final messenger = ScaffoldMessenger.maybeOf(context); // the menu may be gone by the time the copy lands
+    final copied = context.t.pathCopied;
     switch (a) {
       case ProjectAction.open:
         await Places.open(path);
       case ProjectAction.copy:
         await Clipboard.setData(ClipboardData(text: path));
         messenger?.showSnackBar(
-          const SnackBar(content: Text('Path copied'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating),
+          SnackBar(content: Text(copied), duration: const Duration(seconds: 2), behavior: SnackBarBehavior.floating),
         );
     }
   }
@@ -144,6 +139,10 @@ class _ProjectMenuState extends State<ProjectMenu> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // The menu hangs below the button and opens towards the middle of the
+    // window: leftwards in English, rightwards in Arabic.
+    final end = context.rtl ? Alignment.bottomLeft : Alignment.bottomRight;
+    final corner = context.rtl ? Alignment.topLeft : Alignment.topRight;
     return TapRegion(
       groupId: this,
       onTapOutside: (_) => _close(),
@@ -153,11 +152,11 @@ class _ProjectMenuState extends State<ProjectMenu> with SingleTickerProviderStat
           controller: _portal,
           overlayChildBuilder: (context) => CompositedTransformFollower(
             link: _link,
-            targetAnchor: Alignment.bottomRight,
-            followerAnchor: Alignment.topRight,
+            targetAnchor: end,
+            followerAnchor: corner,
             offset: const Offset(0, 4),
             child: Align(
-              alignment: Alignment.topRight,
+              alignment: corner,
               child: TapRegion(
                 groupId: this,
                 child: MouseRegion(
@@ -165,7 +164,7 @@ class _ProjectMenuState extends State<ProjectMenu> with SingleTickerProviderStat
                   onExit: (_) => _hoverOut(),
                   child: _Animated(
                     animation: _anim,
-                    alignment: Alignment.topRight,
+                    alignment: corner,
                     child: _MenuPanel(onChoose: _choose, onEscape: _close),
                   ),
                 ),
@@ -235,10 +234,10 @@ class _MenuPanel extends StatelessWidget {
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 _MenuItem(
                   icon: Icons.folder_open_outlined,
-                  label: 'Show in ${Places.fileManager}',
+                  label: showInFileManager(context),
                   onTap: () => onChoose(ProjectAction.open),
                 ),
-                _MenuItem(icon: Icons.copy_outlined, label: 'Copy path', onTap: () => onChoose(ProjectAction.copy)),
+                _MenuItem(icon: Icons.copy_outlined, label: context.t.copyPath, onTap: () => onChoose(ProjectAction.copy)),
               ]),
             ),
           ),
@@ -262,7 +261,7 @@ class _MenuItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       hoverColor: MB.accent.withValues(alpha: 0.12),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 18, 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 18, 10),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, size: 18, color: MB.quiet(context)),
           const SizedBox(width: 12),

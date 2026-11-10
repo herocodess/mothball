@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'feedback.dart';
+import 'language.dart';
 import 'models.dart';
 import 'motion.dart';
 import 'theme.dart';
@@ -38,18 +39,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _checking = true;
       _checkResult = null;
     });
+    final t = context.t;
     String msg;
     try {
       final u = await widget.onCheckUpdate!();
       if (u == null || u.error.isNotEmpty) {
-        msg = "Couldn't reach GitHub. Try again in a bit.";
+        msg = t.updateCheckFailed;
       } else if (u.available) {
-        msg = 'Mothball ${u.latest} is out. Update from the banner on the main screen.';
+        msg = t.updateCheckAvailable(u.latest);
       } else {
-        msg = "You're on the latest version.";
+        msg = t.updateCheckLatest;
       }
     } catch (_) {
-      msg = "Couldn't check right now.";
+      msg = t.updateCheckError;
     }
     if (mounted) {
       setState(() {
@@ -62,8 +64,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _roots.dispose();
-    // Leaving without saving puts the saved appearance back.
-    if (!_saving) appearance.value = themeModeOf(widget.config.theme);
+    // Leaving without saving puts the saved appearance and language back.
+    if (!_saving) {
+      appearance.value = themeModeOf(widget.config.theme);
+      language.value = widget.config.language;
+    }
     super.dispose();
   }
 
@@ -85,13 +90,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       body: Column(children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 18, 24, 6),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 18, 24, 6),
           child: Row(children: [
-            IconButton(tooltip: 'Back', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_rounded)),
+            IconButton(tooltip: context.t.back, onPressed: () => Navigator.pop(context), icon: const BackButtonIcon()),
             const SizedBox(width: 6),
-            Text('Settings', style: MB.display(context, 28)),
+            Text(context.t.settings, style: MB.display(context, 28)),
             const Spacer(),
-            FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Save')),
+            FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? context.t.saving : context.t.save)),
           ]),
         ),
         Expanded(
@@ -102,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   staggered(_Group(children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 18, 20),
+                      padding: const EdgeInsetsDirectional.fromSTEB(24, 20, 18, 20),
                       child: Wrap(
                         spacing: 20,
                         runSpacing: 12,
@@ -110,16 +115,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                            const Text('Appearance', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            Text(context.t.appearance, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                             const SizedBox(height: 4),
-                            Text('Match your system, or pick one.', style: TextStyle(color: quiet)),
+                            Text(context.t.appearanceHint, style: TextStyle(color: quiet)),
                           ]),
                           SegmentedButton<String>(
                             showSelectedIcon: false,
-                            segments: const [
-                              ButtonSegment(value: 'system', label: Text('System'), icon: Icon(Icons.contrast_rounded, size: 18)),
-                              ButtonSegment(value: 'light', label: Text('Light'), icon: Icon(Icons.light_mode_outlined, size: 18)),
-                              ButtonSegment(value: 'dark', label: Text('Dark'), icon: Icon(Icons.dark_mode_outlined, size: 18)),
+                            segments: [
+                              ButtonSegment(value: 'system', label: Text(context.t.themeSystem), icon: const Icon(Icons.contrast_rounded, size: 18)),
+                              ButtonSegment(value: 'light', label: Text(context.t.themeLight), icon: const Icon(Icons.light_mode_outlined, size: 18)),
+                              ButtonSegment(value: 'dark', label: Text(context.t.themeDark), icon: const Icon(Icons.dark_mode_outlined, size: 18)),
                             ],
                             selected: {_c.theme},
                             onSelectionChanged: (v) {
@@ -130,13 +135,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                     ),
+                    Divider(height: 1, color: MB.line(context)),
+                    _LanguagePicker(
+                      value: _c.language,
+                      version: widget.version,
+                      onChanged: (code) {
+                        setState(() => _c = _c.copyWith(language: code));
+                        language.value = code; // preview right away
+                      },
+                    ),
                   ])),
                   staggered(_Group(children: [
                     _Value(
-                      title: 'Idle after',
-                      hint: 'A project with no commits for this long counts as idle.',
+                      title: context.t.idleAfter,
+                      hint: context.t.idleAfterHint,
                       value: _c.idleDays,
-                      unit: 'days',
+                      unit: context.t.daysUnit(_c.idleDays),
                       min: 7,
                       max: 365,
                       onChanged: (v) => setState(() => _c = _c.copyWith(idleDays: v)),
@@ -144,17 +158,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ])),
                   staggered(_Group(children: [
                     _Toggle(
-                      title: 'Autopilot',
-                      hint: 'Put away output from the longest-idle projects whenever free space drops below your target.',
+                      title: context.t.autopilot,
+                      hint: context.t.autopilotHint,
                       value: _c.autopilot,
                       onChanged: (v) => setState(() => _c = _c.copyWith(autopilot: v)),
                     ),
                     _Reveal(
                       show: _c.autopilot,
                       child: _Value(
-                        title: 'Keep free',
+                        title: context.t.keepFree,
                         value: _c.targetFreeGB,
-                        unit: 'GB',
+                        unit: context.t.unitGB,
                         min: 5,
                         max: 500,
                         onChanged: (v) => setState(() => _c = _c.copyWith(targetFreeGB: v)),
@@ -166,10 +180,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Text('Auto-empty', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          Text(context.t.autoEmpty, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                           const SizedBox(height: 4),
                           Text(
-                            'Not on Windows yet. Mothball can\'t safely tell its own folders apart from the rest of your Recycle Bin, so emptying stays with you.',
+                            context.t.autoEmptyWindows,
                             style: TextStyle(color: quiet, height: 1.45),
                           ),
                         ]),
@@ -178,17 +192,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   else
                     staggered(_Group(children: [
                     _Toggle(
-                      title: 'Auto-empty',
-                      hint: 'Permanently empty the folders Mothball put in the $trashName after a grace period. Nothing else in it is touched.',
+                      title: context.t.autoEmpty,
+                      hint: context.t.autoEmptyHint(inTrash(context)),
                       value: _c.autoEmptyDays > 0,
                       onChanged: (v) => setState(() => _c = _c.copyWith(autoEmptyDays: v ? 7 : 0)),
                     ),
                     _Reveal(
                       show: _c.autoEmptyDays > 0,
                       child: _Value(
-                        title: 'Empty after',
+                        title: context.t.emptyAfter,
                         value: _c.autoEmptyDays.clamp(1, 60),
-                        unit: 'days',
+                        unit: context.t.daysUnit(_c.autoEmptyDays.clamp(1, 60)),
                         min: 1,
                         max: 60,
                         onChanged: (v) => setState(() => _c = _c.copyWith(autoEmptyDays: v)),
@@ -197,18 +211,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ])),
                   staggered(_Group(children: [
                     _Toggle(
-                      title: 'Check for updates',
-                      hint: 'Once a day, Mothball asks GitHub whether a newer version is out. Nothing about you or your projects is sent.',
+                      title: context.t.checkForUpdates,
+                      hint: context.t.checkForUpdatesHint,
                       value: !_c.skipUpdateCheck,
                       onChanged: (v) => setState(() => _c = _c.copyWith(skipUpdateCheck: !v)),
                     ),
                     Divider(height: 1, color: MB.line(context)),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 18, 16),
+                      padding: const EdgeInsetsDirectional.fromSTEB(24, 16, 18, 16),
                       child: Row(children: [
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(widget.version.isEmpty ? 'Mothball' : 'Mothball ${widget.version}',
+                            Text(widget.version.isEmpty ? 'Mothball' : context.t.versionLabel(widget.version),
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                             if (_checkResult != null) ...[
                               const SizedBox(height: 4),
@@ -219,7 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (widget.onCheckUpdate != null)
                           OutlinedButton(
                             onPressed: _checking ? null : _checkNow,
-                            child: Text(_checking ? 'Checking…' : 'Check now'),
+                            child: Text(_checking ? context.t.checking : context.t.checkNow),
                           ),
                       ]),
                     ),
@@ -228,10 +242,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('Send feedback', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        Text(context.t.sendFeedback, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                         const SizedBox(height: 4),
                         Text(
-                          'Found a bug, or a stack Mothball misses? This opens a GitHub issue with your Mothball version and system already filled in. Nothing is sent until you submit it.',
+                          context.t.sendFeedbackHint,
                           style: TextStyle(color: quiet),
                         ),
                         const SizedBox(height: 14),
@@ -239,12 +253,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           OutlinedButton.icon(
                             onPressed: () => MothballApi.openUrl(FeedbackLinks.bugReport(widget.version)),
                             icon: const Icon(Icons.bug_report_outlined, size: 18),
-                            label: const Text('Report a problem'),
+                            label: Text(context.t.reportProblem),
                           ),
                           OutlinedButton.icon(
                             onPressed: () => MothballApi.openUrl(FeedbackLinks.newStack(widget.version)),
                             icon: const Icon(Icons.add_circle_outline, size: 18),
-                            label: const Text('Suggest a stack or cache'),
+                            label: Text(context.t.suggestStack),
                           ),
                         ]),
                       ]),
@@ -254,12 +268,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('Folders to watch', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        Text(context.t.foldersToWatch, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                         const SizedBox(height: 4),
-                        Text('One per line. Leave empty to watch your whole home folder.', style: TextStyle(color: quiet)),
+                        Text(context.t.foldersToWatchHint, style: TextStyle(color: quiet)),
                         const SizedBox(height: 14),
                         TextField(
                           controller: _roots,
+                          textDirection: TextDirection.ltr, // paths read left to right
                           minLines: 3,
                           maxLines: 8,
                           style: const TextStyle(fontFamily: 'Menlo', fontSize: 13),
@@ -271,7 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Text('Tip: add a .mothballignore file to any project to keep Mothball out of it.',
+                        Text(context.t.ignoreTip,
                             style: TextStyle(fontSize: 13, color: quiet)),
                       ]),
                     ),
@@ -334,7 +349,7 @@ class _Toggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 18, 20),
+      padding: const EdgeInsetsDirectional.fromSTEB(24, 20, 18, 20),
       child: Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -403,6 +418,76 @@ class _Value extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+/// The language list. Each language is shown in its own words, so someone
+/// who opened Mothball in the wrong language can still find theirs.
+class _LanguagePicker extends StatelessWidget {
+  const _LanguagePicker({required this.value, required this.version, required this.onChanged});
+
+  final String value;
+  final String version;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final quiet = MB.quiet(context);
+    final known = value.isEmpty || languages.any((l) => l.$1 == value);
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(24, 18, 18, 18),
+      child: Wrap(
+        spacing: 20,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.translate_rounded, size: 18, color: quiet),
+              const SizedBox(width: 8),
+              Text(context.t.language, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+            ]),
+            const SizedBox(height: 4),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Text(context.t.languageHint, style: TextStyle(color: quiet)),
+            ),
+            // The translations are new: make fixing them one click away.
+            if (context.t.localeName != 'en') ...[
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                // Long translations wrap rather than push past the hint.
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: TextButton.icon(
+                  onPressed: () => MothballApi.openUrl(FeedbackLinks.translation(version, FeedbackLinks.translationLanguage(context.t.localeName))),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                  icon: const Icon(Icons.edit_note_rounded, size: 18),
+                  label: Text(context.t.helpTranslate),
+                ),
+              ),
+            ],
+          ]),
+          DropdownMenu<String>(
+            key: const ValueKey('language'),
+            initialSelection: known ? value : '',
+            width: 240,
+            requestFocusOnTap: false,
+            inputDecorationTheme: InputDecorationTheme(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: MB.line(context))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: MB.line(context))),
+            ),
+            dropdownMenuEntries: [
+              DropdownMenuEntry(value: '', label: context.t.languageSystem),
+              for (final (code, name) in languages) DropdownMenuEntry(value: code, label: name),
+            ],
+            onSelected: (v) => onChanged(v ?? ''),
+          ),
+        ],
+      ),
     );
   }
 }
