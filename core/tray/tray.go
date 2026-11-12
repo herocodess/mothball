@@ -7,7 +7,6 @@ package tray
 
 import (
 	_ "embed"
-	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"fyne.io/systray"
 
 	"github.com/herocodess/mothball/core/service"
+	"github.com/herocodess/mothball/core/words"
 )
 
 var (
@@ -57,59 +57,89 @@ func ready(s *service.Service, openApp func()) {
 	}
 	systray.SetTooltip("Mothball")
 
-	free := systray.AddMenuItem("Checking free space…", "")
+	saved := ""
+	if c, err := s.Config(); err == nil {
+		saved = c.Language
+	}
+	lang := words.Lang(saved)
+	w := func(key string, args ...any) string { return words.T(lang, key, args...) }
+
+	free := systray.AddMenuItem(w("checking"), "")
 	free.Disable()
 	idle := systray.AddMenuItem("", "")
 	idle.Disable()
-	back := systray.AddMenuItem("", "Open Mothball to wake it")
+	back := systray.AddMenuItem("", w("wakeTip"))
 	back.Hide()
-	upd := systray.AddMenuItem("", "Open Mothball to update")
+	upd := systray.AddMenuItem("", w("updateTip"))
 	upd.Hide()
 	systray.AddSeparator()
-	open := systray.AddMenuItem("Open Mothball", "")
-	scan := systray.AddMenuItem("Scan now", "Look for build output in idle projects")
-	auto := systray.AddMenuItemCheckbox("Autopilot", "Put away idle output when space runs low", false)
+	open := systray.AddMenuItem(w("open"), "")
+	scan := systray.AddMenuItem(w("scanNow"), w("scanTip"))
+	auto := systray.AddMenuItemCheckbox(w("autopilot"), w("autopilotTip"), false)
 	systray.AddSeparator()
-	quit := systray.AddMenuItem("Quit Mothball", "Stop the background service")
+	quit := systray.AddMenuItem(w("quit"), w("quitTip"))
+
+	// The fixed items follow the language too, so a change in Settings
+	// shows here within one refresh.
+	relabel := func() {
+		back.SetTooltip(w("wakeTip"))
+		upd.SetTooltip(w("updateTip"))
+		open.SetTitle(w("open"))
+		scan.SetTitle(w("scanNow"))
+		scan.SetTooltip(w("scanTip"))
+		auto.SetTitle(w("autopilot"))
+		auto.SetTooltip(w("autopilotTip"))
+		quit.SetTitle(w("quit"))
+		quit.SetTooltip(w("quitTip"))
+	}
 
 	refresh := func() {
 		st, err := s.Status()
 		if err != nil {
-			free.SetTitle("Mothball can't read its settings")
+			free.SetTitle(w("cantRead"))
 			return
 		}
-		f := human(int64(st.FreeBytes)) + " free"
+		if l := words.Lang(st.Config.Language); l != lang {
+			lang = l
+			relabel()
+		}
+		size := func(b int64) string { return words.Size(lang, b) }
+		f := w("free", size(int64(st.FreeBytes)))
 		if st.Config.Autopilot && st.FreeBytes < st.TargetBytes {
-			f += fmt.Sprintf(", below your %d GB target", st.Config.TargetFreeGB)
+			f = w("freeBelow", size(int64(st.FreeBytes)), size(int64(st.Config.TargetFreeGB)<<30))
 		}
 		free.SetTitle(f)
-		systray.SetTooltip("Mothball: " + f)
+		systray.SetTooltip(w("tooltip", f))
 
 		switch {
 		case st.Scanning:
-			idle.SetTitle("Scanning your projects…")
+			idle.SetTitle(w("scanning"))
 		case st.LastScan == nil:
-			idle.SetTitle("Not scanned yet")
+			idle.SetTitle(w("notScanned"))
 		case st.LastScan.IdleBytes+st.LastScan.CacheBytes == 0:
-			idle.SetTitle("Nothing idle to put away")
+			idle.SetTitle(w("nothingIdle"))
 		default:
-			idle.SetTitle(fmt.Sprintf("%s can be freed", human(st.LastScan.IdleBytes+st.LastScan.CacheBytes)))
+			idle.SetTitle(w("canBeFreed", size(st.LastScan.IdleBytes+st.LastScan.CacheBytes)))
 		}
 
 		var returned []string
 		for _, p := range st.Mothballed {
 			if p.Returned {
-				returned = append(returned, base(p.Path))
+				name := p.Name
+				if name == "" {
+					name = base(p.Path)
+				}
+				returned = append(returned, name)
 			}
 		}
 		switch len(returned) {
 		case 0:
 			back.Hide()
 		case 1:
-			back.SetTitle(fmt.Sprintf("You're back on %s. Wake it?", returned[0]))
+			back.SetTitle(w("backOne", returned[0]))
 			back.Show()
 		default:
-			back.SetTitle(fmt.Sprintf("You're back on %d mothballed projects", len(returned)))
+			back.SetTitle(w("backMany", len(returned)))
 			back.Show()
 		}
 
@@ -117,13 +147,13 @@ func ready(s *service.Service, openApp func()) {
 		case u == nil || !u.Available:
 			upd.Hide()
 		case u.Required:
-			upd.SetTitle(fmt.Sprintf("Update required: Mothball %s", u.Latest))
+			upd.SetTitle(w("updateRequired", u.Latest))
 			upd.Show()
 		case u.Phase == "ready":
-			upd.SetTitle(fmt.Sprintf("Restart to update to Mothball %s", u.Latest))
+			upd.SetTitle(w("updateReady", u.Latest))
 			upd.Show()
 		default:
-			upd.SetTitle(fmt.Sprintf("Mothball %s is available", u.Latest))
+			upd.SetTitle(w("updateAvailable", u.Latest))
 			upd.Show()
 		}
 
@@ -172,17 +202,4 @@ func base(p string) string {
 		}
 	}
 	return p
-}
-
-func human(b int64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }

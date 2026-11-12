@@ -11,6 +11,7 @@ import 'logo.dart';
 import 'models.dart';
 import 'motion.dart';
 import 'places.dart';
+import 'service_words.dart';
 import 'settings.dart';
 import 'theme.dart';
 import 'update.dart';
@@ -160,9 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${c.name} · ${sizeOf(ctx, c.bytes)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('${cacheName(ctx, c.id, c.name)} · ${sizeOf(ctx, c.bytes)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(c.how, style: TextStyle(fontSize: 13, color: MB.quiet(ctx))),
+                  Text(cacheHow(ctx, c), style: TextStyle(fontSize: 13, color: MB.quiet(ctx))),
                 ]),
               ),
           ]),
@@ -181,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final failed = res.where((r) => r.error.isNotEmpty).toList();
     _toast(failed.isEmpty
         ? context.t.cleanedResult(sizeOf(context, freed))
-        : context.t.cleanedWithError(sizeOf(context, freed), failed.first.name, failed.first.error));
+        : context.t.cleanedWithError(sizeOf(context, freed), cacheName(context, failed.first.id, failed.first.name), failed.first.error));
     await _refresh();
   }
 
@@ -993,7 +994,7 @@ class _CachesPanel extends StatelessWidget {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
                         Flexible(
-                          child: Text(c.name,
+                          child: Text(cacheName(context, c.id, c.name),
                               overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                         ),
                         const SizedBox(width: 8),
@@ -1002,7 +1003,7 @@ class _CachesPanel extends StatelessWidget {
                         if (c.policy == 'report') _Tag(context.t.tagInfo, quiet),
                       ]),
                       const SizedBox(height: 4),
-                      Text(c.blocked.isNotEmpty ? context.t.cacheWaiting(c.blocked) : c.how,
+                      Text(c.blocked.isNotEmpty ? cacheWaiting(context, c) : cacheHow(context, c),
                           maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: quiet)),
                     ]),
                   ),
@@ -1206,7 +1207,7 @@ class _ActivityPanel extends StatelessWidget {
                           fontWeight: FontWeight.w600, color: e.kind == 'error' ? Theme.of(context).colorScheme.error : null),
                     ),
                     const SizedBox(height: 2),
-                    Text(e.message, style: TextStyle(fontSize: 13, color: quiet)),
+                    Text(eventDetail(context, e), style: TextStyle(fontSize: 13, color: quiet)),
                   ]),
                 ),
               ),
@@ -1228,6 +1229,7 @@ class _ActivityPanel extends StatelessWidget {
       'autopilot' => size == null ? t.eventAutopilot : t.eventAutopilotSize(size),
       'emptied' => size == null ? t.eventEmptied : t.eventEmptiedSize(size),
       'error' => t.eventError,
+      'update' => t.eventUpdate,
       _ => size == null ? e.kind : '${e.kind} $size',
     };
   }

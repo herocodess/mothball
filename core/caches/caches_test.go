@@ -126,8 +126,8 @@ func TestMissingToolBlocks(t *testing.T) {
 	k := newKit(t, "darwin")
 	file(t, filepath.Join(k.Home, ".npm/_cacache/content/y"), 3000, time.Time{})
 	c, _ := find(k.Survey(), "npm")
-	if c.Blocked == "" {
-		t.Fatal("missing tool not reported")
+	if c.Blocked == "" || c.MissingTool != "npm" {
+		t.Fatalf("missing tool not reported: blocked %q, missing %q", c.Blocked, c.MissingTool)
 	}
 	if _, err := k.Clean(c); err == nil {
 		t.Fatal("cleaned without the tool")
@@ -162,8 +162,8 @@ func TestRunningAppBlocks(t *testing.T) {
 	file(t, filepath.Join(dd, "App/x"), 10, time.Time{})
 	k.running["Xcode"] = true
 	c, _ := find(k.Survey(), "xcode-derived-data")
-	if c.Blocked != "Xcode is running" {
-		t.Errorf("blocked = %q", c.Blocked)
+	if c.Blocked != "Xcode is running" || c.BlockedBy != "Xcode" || c.MissingTool != "" {
+		t.Errorf("blocked = %q, by %q, missing %q", c.Blocked, c.BlockedBy, c.MissingTool)
 	}
 	if _, err := k.Clean(c); err == nil {
 		t.Fatal("cleaned while Xcode was running")

@@ -99,6 +99,10 @@ func TestAutopilotTakesLongestIdleUntilCovered(t *testing.T) {
 	if len(st.Events) == 0 || st.Events[len(st.Events)-1].Bytes != 2000 {
 		t.Errorf("events = %+v", st.Events)
 	}
+	// The app shows fixed messages in the user's language by their code.
+	if e := st.Events[len(st.Events)-1]; e.Code != CodePutAwayEmptiesLater && e.Code != CodePutAwayEmptyTrash {
+		t.Errorf("autopilot event has code %q", e.Code)
+	}
 }
 
 func TestAutopilotCountsWaitingTrash(t *testing.T) {
@@ -251,5 +255,13 @@ func TestAutopilotFallsBackToAutoCaches(t *testing.T) {
 	s.Tick()
 	if len(ran) != 1 || ran[0] != "npm" {
 		t.Fatalf("ran %v, want only npm (go modules need asking)", ran)
+	}
+	st, _ := s.Status()
+	var codes []string
+	for _, e := range st.Events {
+		codes = append(codes, e.Code)
+	}
+	if len(codes) == 0 || codes[len(codes)-1] != CodeCleanedCaches {
+		t.Errorf("event codes = %v, want the last to be %s", codes, CodeCleanedCaches)
 	}
 }
