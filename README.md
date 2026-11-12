@@ -33,6 +33,10 @@ Every project you clone, build and forget keeps its `node_modules`, `build`, `.d
 - Runs entirely on your machine. No network, no telemetry
 - On macOS, asks once for Full Disk Access instead of a prompt per folder; until then it skips the folders macOS keeps private
 
+## In your language
+
+The app, the menu bar and tray menu, and [usemothball.dev](https://usemothball.dev) are in English, Arabic (right to left), Spanish, French, Japanese, Portuguese (Brazil) and Chinese (Simplified). Mothball follows your system language, or you can pick one in Settings. Spot a wording that reads wrong? Settings has a link to report it, and [CONTRIBUTING.md](CONTRIBUTING.md#translations) explains how to fix it or add a language.
+
 ## What it covers
 
 Each stack is a small rule pack, so adding a new one is a single pull request. 22 packs ship today, and every one is tested automatically against a same-named source folder.
