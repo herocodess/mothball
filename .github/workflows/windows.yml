@@ -41,7 +41,7 @@ jobs:
       # the stable branch from git, which builds for the machine it runs on.
       - name: Flutter
         run: |
-          git clone --depth 1 -b stable https://github.com/flutter/flutter.git "$env:RUNNER_TEMP\flutter"
+          git clone --depth 1 -b 3.47.3 https://github.com/flutter/flutter.git "$env:RUNNER_TEMP\flutter"
           "$env:RUNNER_TEMP\flutter\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
       - run: flutter --version
       - run: flutter precache --windows
