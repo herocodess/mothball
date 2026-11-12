@@ -1,11 +1,15 @@
 # usemothball.dev
 
-The landing page. Plain HTML, CSS and JavaScript: no framework, no build step,
-no dependencies.
+The landing page, in English, Arabic, Spanish, French, Japanese, Portuguese
+(Brazil) and Chinese (Simplified). Plain HTML, CSS and JavaScript: no
+framework, no dependencies, and Cloudflare serves the files as they are.
 
 ```
 site/
-  index.html     the page
+  i18n/page.html the page, with {{key}} where text goes
+  i18n/en.json   the English text; ar.json, es.json, ... the translations
+  index.html     the English page, written by scripts/build-site.py
+  ar/, es/, ...  each language's page, written the same way
   style.css      colours, layout and motion
   main.js        theme switcher, floating nav, scroll reveals, downloads
   og.png         share image (1200 x 630) shown when the link is pasted
@@ -13,6 +17,29 @@ site/
   img/           app screenshots, light and dark
   fonts/         Instrument Sans and IBM Plex Mono (SIL Open Font License)
 ```
+
+## Languages
+
+Edit `i18n/page.html` or the `i18n/*.json` text, never the written pages, then
+run the script and commit everything it changed:
+
+```
+python3 scripts/build-site.py
+```
+
+CI runs it with `--check` and fails if a written page is out of date.
+
+- Each language lives at its own address (`/ar/`, `/fr/`, ...), with
+  `hreflang` links so search engines show the right one. English is at `/`.
+- The language menu sits next to the theme switch. A visitor whose browser
+  prefers another language the site has gets a small note offering it, in
+  that language; there is never a redirect. Picking a language, or closing
+  the note, is remembered in the browser.
+- Arabic pages are right to left. Commands, file names and the terminal
+  example stay left to right; sizes in Arabic text are wrapped in direction
+  marks so "71.0 GB" stays whole.
+- A new key must be added to every language's file; the script refuses to
+  write pages while one is missing.
 
 ## Run it locally
 

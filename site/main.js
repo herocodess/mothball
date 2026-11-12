@@ -5,12 +5,24 @@
 
   var root = document.documentElement;
   var REPO = 'herocodess/mothball';
+
+  // ---------- This page's language. The text comes from #mb-words, written
+  // into each page by scripts/build-site.py; English is the fallback.
+  var WORDS = {};
+  try { WORDS = JSON.parse(document.getElementById('mb-words').textContent); } catch (e) {}
+  function t(key, vars) {
+    var s = WORDS[key] || key;
+    if (vars) Object.keys(vars).forEach(function (k) { s = s.split('{' + k + '}').join(vars[k]); });
+    return s;
+  }
+  var LANG = root.lang || 'en';
   var RELEASES = 'https://github.com/' + REPO + '/releases';
 
   // ---------- Theme: System (default), Light or Dark, remembered per browser.
   var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   var themeButtons = document.querySelectorAll('[data-theme-pick]');
-  var NAMES = { system: 'System', light: 'Light', dark: 'Dark' };
+  var NAMES = { system: t('themeSystem'), light: t('themeLight'), dark: t('themeDark') };
+  var LABELS_THEME = { system: t('themeSystemLabel'), light: t('themeLightLabel'), dark: t('themeDarkLabel') };
   var narrow = window.matchMedia ? window.matchMedia('(max-width: 520px)') : { matches: false };
 
   function applyTheme(pref) {
@@ -19,8 +31,8 @@
     root.dataset.pref = pref;
     themeButtons.forEach(function (b) {
       b.setAttribute('aria-pressed', b.dataset.themePick === pref ? 'true' : 'false');
-      if (narrow.matches) b.setAttribute('aria-label', 'Theme: ' + NAMES[b.dataset.themePick] + '. Tap to change.');
-      else b.setAttribute('aria-label', b.dataset.themePick === 'system' ? 'Use system theme' : NAMES[b.dataset.themePick] + ' theme');
+      if (narrow.matches) b.setAttribute('aria-label', t('themeTap', { name: NAMES[b.dataset.themePick] }));
+      else b.setAttribute('aria-label', LABELS_THEME[b.dataset.themePick]);
     });
   }
   var ORDER = ['system', 'light', 'dark'];
@@ -86,27 +98,27 @@
 
   var CATALOG = {
     mac: [
-      { key: 'mac', match: /^Mothball-[\d.]+\.dmg$/, title: 'macOS app', fits: 'One download for every Mac: Apple silicon (M1 to M4) and Intel. macOS 11 or later. Signed and notarised.' }
+      { key: 'mac', match: /^Mothball-[\d.]+\.dmg$/, title: t('macTitle'), fits: t('macFits') }
     ],
     win: [
-      { key: 'x64', match: /windows-x64-setup\.exe$/, title: 'Windows x64', fits: 'Most Windows PCs: Intel and AMD processors. Windows 10 and 11. Installs for your account, no admin prompt.' },
-      { key: 'arm64', match: /windows-arm64-setup\.exe$/, title: 'Windows on Arm', fits: 'Snapdragon laptops and Surface Pro with an Arm chip. Runs natively, not emulated.' }
+      { key: 'x64', match: /windows-x64-setup\.exe$/, title: t('winX64Title'), fits: t('winX64Fits') },
+      { key: 'arm64', match: /windows-arm64-setup\.exe$/, title: t('winArmTitle'), fits: t('winArmFits') }
     ],
     linux: [
-      { key: 'x64', match: /linux-x86_64\.AppImage$/, title: 'Linux x64', fits: 'AppImage for any distro: Intel and AMD desktops and laptops. Make it executable and run it; it updates itself.' },
-      { key: 'arm64', match: /linux-aarch64\.AppImage$/, title: 'Linux Arm64', fits: 'AppImage for Arm laptops, Raspberry Pi 4 and 5 on a 64-bit OS, and Arm desktops.' }
+      { key: 'x64', match: /linux-x86_64\.AppImage$/, title: t('linuxX64Title'), fits: t('linuxX64Fits') },
+      { key: 'arm64', match: /linux-aarch64\.AppImage$/, title: t('linuxArmTitle'), fits: t('linuxArmFits') }
     ]
   };
   var LABELS = { mac: 'macOS', win: 'Windows', linux: 'Linux' };
 
   function installFor(os, v, arm) {
-    if (os === 'mac') return { title: 'Or with Homebrew', cmd: '$ brew tap herocodess/tap\n$ brew trust herocodess/tap\n$ brew install --cask mothball', note: 'The app includes the mothball command line tool.' };
-    if (os === 'win') return { title: 'Or with Scoop', cmd: '> scoop bucket add herocodess https://github.com/herocodess/scoop-bucket\n> scoop install mothball', note: 'The installer also adds the mothball command. Not sure which one? Settings > System > About > System type. If SmartScreen warns you, choose More info, then Run anyway.' };
+    if (os === 'mac') return { title: t('orHomebrew'), cmd: '$ brew tap herocodess/tap\n$ brew trust herocodess/tap\n$ brew install --cask mothball', note: t('appIncludesCli') };
+    if (os === 'win') return { title: t('orScoop'), cmd: '> scoop bucket add herocodess https://github.com/herocodess/scoop-bucket\n> scoop install mothball', note: t('scoopNote') };
     var deb = arm ? 'arm64' : 'amd64', rpm = arm ? 'aarch64' : 'x86_64';
     return {
-      title: 'Prefer a package?',
+      title: t('preferPackage'),
       cmd: '$ sudo apt install ./mothball_' + v + '-1_' + deb + '.deb     # Ubuntu, Debian\n$ sudo dnf install ./mothball-' + v + '-1.' + rpm + '.rpm    # Fedora',
-      note: 'The .deb and .rpm (x64 and Arm64) are on the release page. Each adds Mothball to your app menu and the mothball command to your terminal.'
+      note: t('packageNote')
     };
   }
 
@@ -125,7 +137,13 @@
     }
   } catch (e) {}
 
-  function mb(bytes) { return (bytes / 1048576).toFixed(1) + ' MB'; }
+  // Sizes in this page's language: "12.4 MB", "12,4 Mo". Arabic keeps 0-9.
+  var NUM = null;
+  try { NUM = new Intl.NumberFormat(LANG === 'ar' ? 'en' : LANG, { minimumFractionDigits: 1, maximumFractionDigits: 1 }); } catch (e) {}
+  function mb(bytes) {
+    var n = bytes / 1048576;
+    return (NUM ? NUM.format(n) : n.toFixed(1)) + '\u00a0' + t('unitMB');
+  }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
 
   function releaseAssets() {
@@ -151,9 +169,10 @@
     tabButtons.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.os === os ? 'true' : 'false'); });
 
     var detected = document.getElementById('dl-detected');
-    detected.textContent = state.os
-      ? 'We picked ' + LABELS[state.os] + (state.os === 'mac' ? '' : arm ? ' on Arm' : state.arch === 'x86' ? ' x64' : '') + ' for you. Not right? Choose another.'
-      : 'Free and open source, for macOS, Windows and Linux.';
+    var picked = state.os === 'mac' ? LABELS.mac
+      : arm ? t('osOnArm', { os: LABELS[state.os] })
+      : state.arch === 'x86' ? LABELS[state.os] + ' x64' : LABELS[state.os];
+    detected.textContent = state.os ? t('pickedFor', { os: picked }) : t('dlDefault');
 
     filesEl.textContent = '';
     CATALOG[os].forEach(function (item, i) {
@@ -168,12 +187,14 @@
 
       var top = el('span', 'file-top');
       top.appendChild(el('span', 'file-title', item.title));
-      if (mine) top.appendChild(el('span', 'badge', 'Your system'));
+      if (mine) top.appendChild(el('span', 'badge', t('yourSystem')));
       a.appendChild(top);
       a.appendChild(el('span', 'quiet', item.fits));
 
       var bottom = el('span', 'file-bottom');
-      bottom.appendChild(el('span', 'file-name mono', asset.name));
+      var fname = el('span', 'file-name mono', asset.name);
+      fname.dir = 'ltr';
+      bottom.appendChild(fname);
       var size = el('span', 'file-size');
       size.innerHTML = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M6 11l6 6 6-6"/><path d="M5 20h14"/></svg>';
       size.appendChild(document.createTextNode(mb(asset.size)));
@@ -218,6 +239,60 @@
         render();
       })
       .catch(function () {});
+  })();
+
+  // ---------- Languages: a menu next to the theme switch, and a quiet note
+  // when the browser prefers another language this site has. Never a
+  // redirect: picking a language, or closing the note, is remembered.
+  (function languages() {
+    var LANG_KEY = 'mothball-lang';
+    var info = null;
+    try { info = JSON.parse(document.getElementById('mb-langs').textContent); } catch (e) { return; }
+    var menu = document.querySelector('.langs');
+    function remember(code) { try { localStorage.setItem(LANG_KEY, code); } catch (e) {} }
+
+    if (menu) {
+      menu.querySelectorAll('a[data-lang]').forEach(function (a) {
+        a.addEventListener('click', function () { remember(a.dataset.lang); });
+      });
+      document.addEventListener('click', function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); } });
+    }
+
+    var chosen = null;
+    try { chosen = localStorage.getItem(LANG_KEY); } catch (e) {}
+    if (chosen) return;
+    var wanted = null;
+    var prefs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+    for (var i = 0; i < prefs.length && !wanted; i++) {
+      var code = String(prefs[i]).toLowerCase().split(/[-_]/)[0];
+      if (info.languages[code]) wanted = code;
+    }
+    if (!wanted || wanted === info.current) return;
+
+    var l = info.languages[wanted];
+    var note = document.createElement('div');
+    note.className = 'lang-note';
+    note.lang = wanted;
+    note.dir = wanted === 'ar' ? 'rtl' : 'ltr';
+    note.setAttribute('role', 'region');
+    note.setAttribute('aria-label', l.name);
+    var text = document.createElement('span');
+    text.textContent = l.suggest + ' ';
+    var go = document.createElement('a');
+    go.href = l.path;
+    go.textContent = l.view;
+    go.addEventListener('click', function () { remember(wanted); });
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.setAttribute('aria-label', l.close);
+    close.title = l.close;
+    close.innerHTML = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    close.addEventListener('click', function () { remember(info.current); note.remove(); });
+    note.appendChild(text);
+    note.appendChild(go);
+    note.appendChild(close);
+    document.body.appendChild(note);
   })();
 
   // ---------- Download counting (private, no cookies).
