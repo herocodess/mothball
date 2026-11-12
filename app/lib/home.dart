@@ -31,6 +31,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _busy = false;
   String _busyLabel = '';
   Timer? _poll;
+  // The saved theme and language as last applied. A refresh applies them
+  // only when they change, so it never undoes a preview in open Settings.
+  String? _appliedTheme;
+  String? _appliedLanguage;
   Timer? _fastPoll; // quicker refresh while an update downloads
   String? _laterFor; // version whose banner the user put off this session
   bool _triedStart = false; // started the bundled service once this launch
@@ -62,8 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
         st = await widget.api.status();
       }
       if (mounted) {
-        appearance.value = themeModeOf(st.config.theme);
-        language.value = st.config.language;
+        if (st.config.theme != _appliedTheme) {
+          appearance.value = themeModeOf(_appliedTheme = st.config.theme);
+        }
+        if (st.config.language != _appliedLanguage) {
+          language.value = _appliedLanguage = st.config.language;
+        }
         setState(() {
           _status = st;
           _offline = null;

@@ -5,6 +5,7 @@ import 'package:mothball/language.dart';
 import 'package:mothball/main.dart';
 import 'package:mothball/models.dart';
 import 'package:mothball/settings.dart';
+import 'package:mothball/theme.dart';
 
 class _FakeApi extends MothballApi {
   _FakeApi() : super(dir: '/nonexistent');
@@ -101,6 +102,30 @@ void main() {
       });
     });
   }
+
+  testWidgets('a previewed language and theme survive the background refresh', (tester) async {
+    addTearDown(() {
+      language.value = '';
+      appearance.value = ThemeMode.system;
+    });
+    tester.view.physicalSize = const Size(1100, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MothballApp(api: _FakeApi()));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pump(const Duration(seconds: 1));
+    // What picking Arabic and Dark in Settings does, before Save.
+    language.value = 'ar';
+    appearance.value = ThemeMode.dark;
+    // Several refreshes (every 5 seconds) pass while the saved settings are still English and system.
+    for (var i = 0; i < 16; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    expect(language.value, 'ar');
+    expect(appearance.value, ThemeMode.dark);
+    expect(Directionality.of(tester.element(find.byType(SettingsScreen))), TextDirection.rtl);
+  });
 
   testWidgets('sizes use the language\'s decimal mark and units', (tester) async {
     final out = <String, String>{};
