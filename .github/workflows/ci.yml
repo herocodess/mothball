@@ -42,7 +42,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          # Pinned so every build uses the Flutter the app was tested with.
+          # Upgrade on purpose, in one PR, everywhere at once.
           channel: stable
+          flutter-version: 3.47.3
       - run: flutter pub get
       - name: flutter analyze
         run: |
