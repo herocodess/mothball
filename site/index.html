@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en">
+<!-- Written by scripts/build-site.py from site/i18n/page.html and site/i18n/en.json. Edit those, not this file. -->
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,9 +10,18 @@
 <meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1115" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://usemothball.dev/">
+<link rel="alternate" hreflang="en" href="https://usemothball.dev/">
+<link rel="alternate" hreflang="ar" href="https://usemothball.dev/ar/">
+<link rel="alternate" hreflang="es" href="https://usemothball.dev/es/">
+<link rel="alternate" hreflang="fr" href="https://usemothball.dev/fr/">
+<link rel="alternate" hreflang="ja" href="https://usemothball.dev/ja/">
+<link rel="alternate" hreflang="pt-BR" href="https://usemothball.dev/pt/">
+<link rel="alternate" hreflang="zh-Hans" href="https://usemothball.dev/zh/">
+<link rel="alternate" hreflang="x-default" href="https://usemothball.dev/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Mothball">
 <meta property="og:url" content="https://usemothball.dev/">
+<meta property="og:locale" content="en_US">
 <meta property="og:title" content="Mothball: put idle projects away, get your disk back">
 <meta property="og:description" content="Finds the build output in projects you forgot, puts it away, and rebuilds it when you come back. Free and open source for macOS, Windows and Linux.">
 <meta property="og:image" content="https://usemothball.dev/og.png">
@@ -19,9 +29,9 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Mothball: your disk is full of projects you forgot. 56.5 GB back on the first run.">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preload" href="fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
 <script>
   // Pick the theme before the page paints, so there is no flash.
   (function () {
@@ -33,8 +43,8 @@
     root.classList.add('js');
   })();
 </script>
-<link rel="stylesheet" href="style.css">
-<script src="main.js" defer></script>
+<link rel="stylesheet" href="/style.css">
+<script src="/main.js" defer></script>
 <!-- Private, cookie-free counts of visits and download clicks. See site/README.md. -->
 <script data-goatcounter="https://mothball.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
@@ -57,6 +67,10 @@
         <button type="button" data-theme-pick="light" aria-pressed="false" aria-label="Light theme" title="Light theme"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
         <button type="button" data-theme-pick="dark" aria-pressed="false" aria-label="Dark theme" title="Dark theme"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
       </div>
+      <details class="langs">
+        <summary aria-label="Language" title="Language"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg><span class="langs-code">EN</span></summary>
+        <ul class="langs-list"><li><a href="/" hreflang="en" lang="en" data-lang="en" aria-current="page">English</a></li><li><a href="/ar/" hreflang="ar" lang="ar" data-lang="ar">العربية</a></li><li><a href="/es/" hreflang="es" lang="es" data-lang="es">Español</a></li><li><a href="/fr/" hreflang="fr" lang="fr" data-lang="fr">Français</a></li><li><a href="/ja/" hreflang="ja" lang="ja" data-lang="ja">日本語</a></li><li><a href="/pt/" hreflang="pt-BR" lang="pt-BR" data-lang="pt">Português (Brasil)</a></li><li><a href="/zh/" hreflang="zh-Hans" lang="zh-Hans" data-lang="zh">简体中文</a></li></ul>
+      </details>
       <a class="btn btn-accent btn-sm" href="#download">Download</a>
     </nav>
   </div>
@@ -114,8 +128,8 @@
 
 <section class="wrap pad-96">
   <div class="shot tilt">
-    <img class="only-dark" src="img/app-dark.webp" width="1100" height="1500" alt="The Mothball app: free space, Autopilot, and idle projects with the build output each one can give back" loading="lazy" decoding="async">
-    <img class="only-light" src="img/app-light.webp" width="1100" height="1500" alt="The Mothball app: free space, Autopilot, and idle projects with the build output each one can give back" loading="lazy" decoding="async">
+    <img class="only-dark" src="/img/app-dark.webp" width="1100" height="1500" alt="The Mothball app: free space, Autopilot, and idle projects with the build output each one can give back" loading="lazy" decoding="async">
+    <img class="only-light" src="/img/app-light.webp" width="1100" height="1500" alt="The Mothball app: free space, Autopilot, and idle projects with the build output each one can give back" loading="lazy" decoding="async">
   </div>
 </section>
 
@@ -156,7 +170,7 @@
     <h2 class="h2">All of this is safe to put away.</h2>
     <p class="quiet body">Every folder here can be rebuilt with one command. Mothball only takes it when the project around it proves what it is.</p>
   </div>
-  <div class="chips reveal mono">
+  <div class="chips reveal mono" dir="ltr">
     <span class="chip">node_modules</span><span class="chip">.next</span><span class="chip">target</span><span class="chip">.venv</span><span class="chip">Pods</span><span class="chip">.dart_tool</span><span class="chip">build</span><span class="chip">.gradle</span><span class="chip">.build</span><span class="chip">bin</span><span class="chip">obj</span><span class="chip">vendor</span><span class="chip">_build</span><span class="chip">.stack-work</span><span class="chip">zig-out</span><span class="chip">.angular</span><span class="chip">.svelte-kit</span><span class="chip">.turbo</span><span class="chip">Library</span><span class="chip">Intermediate</span><span class="chip">.godot</span><span class="chip">.terraform</span><span class="chip cache">DerivedData</span><span class="chip cache">~/.npm</span><span class="chip cache">Simulators</span><span class="chip cache">Homebrew cache</span><span class="chip cache">Chrome cache</span><span class="chip cache">Teams cache</span><span class="chip cache">Slack cache</span>
   </div>
   <p class="reveal quiet small note">22 stacks, plus app and tool caches in green. Never bookmarks, sign-ins or messages. <a class="link" href="https://github.com/herocodess/mothball/blob/main/docs/rule-packs.md">Missing yours? It's one file.</a></p>
@@ -186,7 +200,7 @@
       <h2 class="h2">The whole thing is a CLI too.</h2>
       <p class="quiet body-lg">Same engine, same safety checks, on macOS, Windows and Linux.</p>
     </div>
-    <div class="term reveal two-b mono" role="img" aria-label="Example terminal session: mothball scan finds 6 idle projects with 19.3 GB of build output, mothball clean puts it away, and mothball wake restores a project.">
+    <div class="term reveal two-b mono" dir="ltr" role="img" aria-label="Example terminal session: mothball scan finds 6 idle projects with 19.3 GB of build output, mothball clean puts it away, and mothball wake restores a project.">
       <div class="tl">$ mothball scan ~/dev</div>
       <div class="tl dim">6 idle projects · 19.3 GB of build output</div>
       <div class="tl">  apps/v2          .next       5.7 GB   idle 150d</div>
@@ -223,7 +237,7 @@
     <div class="dl-foot">
       <div class="dl-install">
         <p class="strong small" id="dl-install-title">Or with Homebrew</p>
-        <pre class="code mono" id="dl-install">$ brew tap herocodess/tap
+        <pre class="code mono" id="dl-install" dir="ltr">$ brew tap herocodess/tap
 $ brew trust herocodess/tap
 $ brew install --cask mothball</pre>
       </div>
@@ -252,5 +266,7 @@ $ brew install --cask mothball</pre>
   <span class="foot-fine">No cookies. This site counts visits and downloads anonymously.</span>
 </footer>
 
+<script id="mb-words" type="application/json">{"themeSystem": "System", "themeLight": "Light", "themeDark": "Dark", "themeTap": "Theme: {name}. Tap to change.", "themeSystemLabel": "Use system theme", "themeLightLabel": "Light theme", "themeDarkLabel": "Dark theme", "macTitle": "macOS app", "macFits": "One download for every Mac: Apple silicon (M1 to M4) and Intel. macOS 11 or later. Signed and notarised.", "winX64Title": "Windows x64", "winX64Fits": "Most Windows PCs: Intel and AMD processors. Windows 10 and 11. Installs for your account, no admin prompt.", "winArmTitle": "Windows on Arm", "winArmFits": "Snapdragon laptops and Surface Pro with an Arm chip. Runs natively, not emulated.", "linuxX64Title": "Linux x64", "linuxX64Fits": "AppImage for any distro: Intel and AMD desktops and laptops. Make it executable and run it; it updates itself.", "linuxArmTitle": "Linux Arm64", "linuxArmFits": "AppImage for Arm laptops, Raspberry Pi 4 and 5 on a 64-bit OS, and Arm desktops.", "orHomebrew": "Or with Homebrew", "appIncludesCli": "The app includes the mothball command line tool.", "orScoop": "Or with Scoop", "scoopNote": "The installer also adds the mothball command. Not sure which one? Settings > System > About > System type. If SmartScreen warns you, choose More info, then Run anyway.", "preferPackage": "Prefer a package?", "packageNote": "The .deb and .rpm (x64 and Arm64) are on the release page. Each adds Mothball to your app menu and the mothball command to your terminal.", "pickedFor": "We picked {os} for you. Not right? Choose another.", "osOnArm": "{os} on Arm", "yourSystem": "Your system", "dlDefault": "Free and open source, for macOS, Windows and Linux.", "unitMB": "MB"}</script>
+<script id="mb-langs" type="application/json">{"current": "en", "languages": {"en": {"name": "English", "path": "/", "suggest": "This page is also in English.", "view": "View in English", "close": "Close"}, "ar": {"name": "العربية", "path": "/ar/", "suggest": "هذه الصفحة متوفرة أيضًا بالعربية.", "view": "اعرضها بالعربية", "close": "إغلاق"}, "es": {"name": "Español", "path": "/es/", "suggest": "Esta página también está en español.", "view": "Ver en español", "close": "Cerrar"}, "fr": {"name": "Français", "path": "/fr/", "suggest": "Cette page existe aussi en français.", "view": "Voir en français", "close": "Fermer"}, "ja": {"name": "日本語", "path": "/ja/", "suggest": "このページは日本語でもご覧いただけます。", "view": "日本語で見る", "close": "閉じる"}, "pt": {"name": "Português (Brasil)", "path": "/pt/", "suggest": "Esta página também está em português.", "view": "Ver em português", "close": "Fechar"}, "zh": {"name": "简体中文", "path": "/zh/", "suggest": "此页面也提供简体中文版。", "view": "查看简体中文版", "close": "关闭"}}}</script>
 </body>
 </html>

@@ -32,6 +32,16 @@ jobs:
       - name: Build CLI
         run: go build -o dist/ ./cli/mothball
 
+  site:
+    name: website pages up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every language's page matches its text
+        run: python3 scripts/build-site.py --check
+      - name: Script
+        run: node --check site/main.js
+
   app:
     name: desktop app (analyze and test)
     runs-on: ubuntu-latest

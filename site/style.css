@@ -83,7 +83,7 @@ body, body * {
 .small { font-size: 14px; }
 .link { color: var(--accent); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.skip { position: absolute; left: 16px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 600; text-decoration: none; }
+.skip { position: absolute; inset-inline-start: 16px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 600; text-decoration: none; }
 .skip:focus { top: 12px; }
 
 .wrap { max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
@@ -130,7 +130,7 @@ body, body * {
   .themes button:not([aria-pressed="true"]) { display: none; }
   .btn-sm { padding: 9px 14px; font-size: 14px; }
   .hdr.pill { padding: 10px 12px 0; }
-  .hdr.pill .bar { padding: 6px 6px 6px 14px; }
+  .hdr.pill .bar { padding-block: 6px; padding-inline: 14px 6px; }
 }
 .themes { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--sunk); border: 1px solid var(--line); }
 .hdr.pill .themes { border-radius: 999px; }
@@ -141,6 +141,66 @@ body, body * {
 .hdr.pill .themes button { border-radius: 999px; }
 .themes button:hover { color: var(--ink); }
 .themes button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+
+/* Language menu, next to the theme switch. */
+.langs { position: relative; }
+.langs summary {
+  list-style: none; display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px;
+  border-radius: 12px; background: var(--sunk); border: 1px solid var(--line); color: var(--quiet);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.langs summary::-webkit-details-marker { display: none; }
+.langs summary:hover, .langs[open] summary { color: var(--ink); }
+.hdr.pill .langs summary { border-radius: 999px; }
+.langs-list {
+  position: absolute; top: calc(100% + 8px); inset-inline-end: 0; z-index: 60; min-width: 200px;
+  margin: 0; padding: 6px; list-style: none; background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, .18);
+}
+.langs-list a { display: block; padding: 9px 12px; border-radius: 9px; color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 500; }
+.langs-list a:hover { background: var(--sunk); }
+.langs-list a[aria-current="page"] { color: var(--accent); }
+@media (max-width: 520px) {
+  .langs summary { padding: 0 10px; } .langs-code { display: none; }
+  /* One header row in every language: the nav never wraps, and on the
+     narrowest phones the wordmark gives way to the logo. */
+  .nav { flex-wrap: nowrap; } .btn-sm { white-space: nowrap; }
+}
+@media (max-width: 400px) { .brand span { display: none; } }
+
+/* "This page is also in ..." note, for browsers that prefer another language. */
+.lang-note {
+  position: fixed; inset-inline: 16px; bottom: 16px; z-index: 70; margin: 0 auto; max-width: 560px;
+  display: flex; align-items: center; gap: 12px; padding-block: 12px; padding-inline: 18px 12px; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 16px; box-shadow: 0 16px 40px rgba(0, 0, 0, .22); font-size: 15px;
+  animation: note-in .4s ease both;
+}
+.lang-note span { flex: 1; }
+.lang-note a { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.lang-note button {
+  flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 9px; background: transparent; color: var(--quiet); cursor: pointer;
+}
+.lang-note button:hover { background: var(--sunk); color: var(--ink); }
+@keyframes note-in { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { .lang-note { animation: none; } }
+
+/* Arabic, Chinese and Japanese: no tight letter spacing (it breaks Arabic
+   letters apart and crowds Chinese and Japanese), no all caps, a bit more
+   line height, and system fonts that have the letters. */
+html:lang(ar) body { font-family: "Instrument Sans", "SF Arabic", "Geeza Pro", "Segoe UI", "Noto Sans Arabic", system-ui, sans-serif; }
+html:lang(zh) body { font-family: "Instrument Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif; }
+html:lang(ja) body { font-family: "Instrument Sans", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", system-ui, sans-serif; }
+html:lang(ar) :is(h1, h2, h3, .h2, .big, .num, .brand, .kicker, .unit),
+html:lang(zh) :is(h1, h2, h3, .h2, .big, .num, .kicker, .unit),
+html:lang(ja) :is(h1, h2, h3, .h2, .big, .num, .kicker, .unit) { letter-spacing: 0; text-transform: none; }
+html:lang(ar) :is(h1, .h2), html:lang(zh) :is(h1, .h2), html:lang(ja) :is(h1, .h2) { line-height: 1.25; }
+/* Chinese and Japanese characters are wide: a smaller headline keeps each
+   of its three lines whole, and words only break where they may. */
+html:lang(zh) h1, html:lang(ja) h1 { font-size: clamp(34px, 4.6vw, 62px); }
+html:lang(zh) :is(h1, .h2, h3), html:lang(ja) :is(h1, .h2, h3) { word-break: keep-all; overflow-wrap: anywhere; }
+/* Big numbers stay whole inside Arabic text. */
+.num { unicode-bidi: isolate; }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -191,7 +251,7 @@ h1 span { display: block; }
 .big { margin-top: 12px; font-size: clamp(64px, 12vw, 160px); line-height: .9; letter-spacing: -.06em; font-weight: 600; }
 .unit { font-size: .4em; letter-spacing: -.02em; color: var(--quiet); }
 .phase { margin-top: 32px; position: relative; height: 22px; font-size: 14px; font-weight: 600; }
-.phase span { position: absolute; left: 0; top: 0; }
+.phase span { position: absolute; inset-inline-start: 0; top: 0; }
 .lbl-before { color: var(--quiet); }
 .lbl-after { color: var(--accent); opacity: 0; }
 .disk { margin-top: 8px; height: 28px; border-radius: 8px; overflow: hidden; display: flex; gap: 3px; background: var(--sunk); }
