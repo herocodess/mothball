@@ -114,5 +114,18 @@
   "unitMB": "Mo",
   "suggest": "Cette page existe aussi en français.",
   "suggestView": "Voir en français",
-  "close": "Fermer"
+  "close": "Fermer",
+  "appsKicker": "Vos applications du quotidien aussi",
+  "appsTitle": "Les applications que vous utilisez chaque jour accumulent des gigaoctets de cache.",
+  "appsBody": "Navigateurs, messageries et éditeurs gardent des copies de pages et de fichiers qu'ils peuvent retélécharger à tout moment. Sur un ordinateur de travail ordinaire, cela représente quelques gigaoctets. Mothball efface ces copies, et chaque application reconstruit ce dont elle a besoin à sa prochaine ouverture.",
+  "appsBrowsers": "Navigateurs",
+  "appsChat": "Messagerie pro",
+  "appsWork": "Notes, design et IA",
+  "appsEditors": "Éditeurs de code",
+  "appsClearsTitle": "Efface uniquement le cache.",
+  "appsClears": "Caches de pages, fichiers d'applications en cache et paquets d'extensions téléchargés.",
+  "appsNeverTitle": "Jamais vos données.",
+  "appsNever": "Favoris, historique, mots de passe, connexions, messages, conversations et téléchargements restent exactement où ils sont.",
+  "appsWaitTitle": "Attend tant qu'une application est ouverte.",
+  "appsWait": "Mothball vous indique quelle application il attend et ne touche pas à son cache tant que vous ne l'avez pas fermée."
 }

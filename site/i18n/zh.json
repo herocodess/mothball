@@ -114,5 +114,18 @@
   "unitMB": "MB",
   "suggest": "此页面也提供简体中文版。",
   "suggestView": "查看简体中文版",
-  "close": "关闭"
+  "close": "关闭",
+  "appsKicker": "日常应用也一样",
+  "appsTitle": "你每天用的应用，悄悄攒下了大量缓存。",
+  "appsBody": "浏览器、聊天应用和编辑器会保存网页和文件的副本，需要时随时可以重新下载。一台普通的工作笔记本上，这些通常有好几 GB。Mothball 只清除这些副本，下次打开时，各个应用会自动重建所需的内容。",
+  "appsBrowsers": "浏览器",
+  "appsChat": "工作聊天",
+  "appsWork": "笔记、设计与 AI",
+  "appsEditors": "代码编辑器",
+  "appsClearsTitle": "只清除缓存。",
+  "appsClears": "网页缓存、应用缓存文件和已下载的扩展安装包。",
+  "appsNeverTitle": "绝不碰你的数据。",
+  "appsNever": "书签、历史记录、密码、登录状态、消息、聊天记录和下载内容都原封不动。",
+  "appsWaitTitle": "应用打开时会等待。",
+  "appsWait": "Mothball 会告诉你它在等哪个应用，在你关闭该应用之前不会碰它的缓存。"
 }
