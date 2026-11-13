@@ -86,13 +86,13 @@
   // The list fills from the latest GitHub release, so a new version shows up
   // here without touching the site. FALLBACK is used if GitHub is unreachable.
   var FALLBACK = {
-    version: '0.1.3',
+    version: '0.1.7',
     assets: {
-      'Mothball-0.1.3.dmg': 26843546,
-      'Mothball-0.1.3-windows-x64-setup.exe': 13002342,
-      'Mothball-0.1.3-windows-arm64-setup.exe': 12163481,
-      'Mothball-0.1.3-linux-x86_64.AppImage': 13317111,
-      'Mothball-0.1.3-linux-aarch64.AppImage': 12582912
+      'Mothball-0.1.7.dmg': 28100448,
+      'Mothball-0.1.7-windows-x64-setup.exe': 13324540,
+      'Mothball-0.1.7-windows-arm64-setup.exe': 12455172,
+      'Mothball-0.1.7-linux-x86_64.AppImage': 13806072,
+      'Mothball-0.1.7-linux-aarch64.AppImage': 13031944
     }
   };
 
