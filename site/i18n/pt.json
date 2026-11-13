@@ -114,5 +114,18 @@
   "unitMB": "MB",
   "suggest": "Esta página também está em português.",
   "suggestView": "Ver em português",
-  "close": "Fechar"
+  "close": "Fechar",
+  "appsKicker": "Seus apps do dia a dia também",
+  "appsTitle": "Os apps que você usa todo dia guardam gigabytes de cache.",
+  "appsBody": "Navegadores, apps de chat e editores guardam cópias de páginas e arquivos que podem baixar de novo quando precisarem. Num notebook de trabalho comum, isso chega a alguns gigabytes. O Mothball apaga essas cópias, e cada app recria o que precisa na próxima vez que você o abrir.",
+  "appsBrowsers": "Navegadores",
+  "appsChat": "Chat de trabalho",
+  "appsWork": "Notas, design e IA",
+  "appsEditors": "Editores de código",
+  "appsClearsTitle": "Limpa só o cache.",
+  "appsClears": "Caches de páginas, arquivos de apps em cache e pacotes de extensões baixados.",
+  "appsNeverTitle": "Nunca seus dados.",
+  "appsNever": "Favoritos, histórico, senhas, logins, mensagens, conversas e downloads ficam exatamente onde estão.",
+  "appsWaitTitle": "Espera enquanto o app estiver aberto.",
+  "appsWait": "O Mothball avisa por qual app está esperando e não mexe no cache dele até você fechá-lo."
 }

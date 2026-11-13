@@ -114,5 +114,18 @@
   "unitMB": "MB",
   "suggest": "This page is also in English.",
   "suggestView": "View in English",
-  "close": "Close"
+  "close": "Close",
+  "appsKicker": "Everyday apps too",
+  "appsTitle": "The apps you use every day keep gigabytes of cache.",
+  "appsBody": "Browsers, chat apps and editors save copies of pages and files they can fetch again whenever they need them. On a typical work laptop that adds up to a few gigabytes. Mothball clears those copies, and each app rebuilds what it needs the next time you open it.",
+  "appsBrowsers": "Browsers",
+  "appsChat": "Work chat",
+  "appsWork": "Notes, design and AI",
+  "appsEditors": "Code editors",
+  "appsClearsTitle": "Clears only the cache.",
+  "appsClears": "Page caches, cached app files and downloaded extension packages.",
+  "appsNeverTitle": "Never your data.",
+  "appsNever": "Bookmarks, history, passwords, sign-ins, messages, chats and downloads stay exactly where they are.",
+  "appsWaitTitle": "Waits while an app is open.",
+  "appsWait": "Mothball tells you which app it is waiting for, and leaves its cache alone until you close it."
 }
